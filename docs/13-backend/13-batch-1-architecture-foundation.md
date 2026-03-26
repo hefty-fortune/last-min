@@ -307,7 +307,7 @@ Rules:
 - Client cannot cancel.
 - Client no-show treated as consumed service.
 - Provider no-show triggers refund flow.
-- Booking states include: `initiated`, `reserved`, `payment_pending`, `confirmed`, `completed`, `client_no_show`, `provider_no_show`, `cancelled_by_provider`, `refunded`.
+- Booking states include: `initiated`, `reserved`, `payment_pending`, `confirmed`, `completed`, `client_no_show`, `provider_no_show`, `cancelled_by_provider`, `reservation_expired`, `payment_failed`, `refunded`.
 - Payment states include: `initiated`, `authorized`, `captured`, `failed`, `refunded`.
 - Payout states include: `pending`, `eligible`, `scheduled`, `paid`.
 
