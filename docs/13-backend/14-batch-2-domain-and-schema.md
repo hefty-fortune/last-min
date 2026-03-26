@@ -264,6 +264,7 @@ States:
 - `client_no_show`
 - `provider_no_show`
 - `cancelled_by_provider`
+- `reservation_expired` (reservation TTL elapsed before confirmation)
 - `payment_failed` (MVP pre-confirmation terminal outcome)
 - `refunded`
 
@@ -272,14 +273,15 @@ Primary transitions:
 - `initiated -> reserved` (application-level pre-persistence to persisted reservation)
 - `reserved -> payment_pending` (payment intent created)
 - `payment_pending -> confirmed` (payment captured/confirmed)
+- `reserved|payment_pending -> reservation_expired` (reservation timeout before confirmation)
 - `payment_pending -> payment_failed` (payment failure before confirmation)
 - `confirmed -> completed` (service delivered)
 - `confirmed -> client_no_show` (policy outcome)
 - `confirmed -> provider_no_show` (policy outcome, triggers refund workflow)
 - `provider_no_show -> refunded` (refund completed)
-- `published opening + provider action -> cancelled_by_provider` (if before confirmation rules)
+- `reserved|payment_pending -> cancelled_by_provider` (provider cancellation before confirmation rules)
 
-Terminal states (MVP): `completed`, `client_no_show`, `refunded`, `cancelled_by_provider`, `payment_failed`.
+Terminal states (MVP): `completed`, `client_no_show`, `refunded`, `cancelled_by_provider`, `reservation_expired`, `payment_failed`.
 
 ## 3.2 Payment state machine
 
@@ -362,6 +364,7 @@ Transitions:
 
 - One opening can have at most one active booking in MVP (`capacity=1`).
 - In MVP, booking row creation starts at `reserved` (not `initiated`); `initiated` remains pre-persistence application state.
+- If reservation TTL expires before confirmation, booking transitions to terminal `reservation_expired` and opening is reopened (`reserved -> published`).
 - If pre-confirmation payment fails, booking transitions to terminal `payment_failed` and opening is reopened (`reserved -> published`).
 - `bookings` must enforce one active booking per opening via unique/partial uniqueness strategy.
 - Reservation transition must run inside transaction with row lock on opening (`SELECT ... FOR UPDATE` equivalent).
@@ -605,6 +608,7 @@ Constraints/indexes:
 - INDEX `(state, reservation_expires_at)`
 - UNIQUE active booking per opening (implementation choice):
   - partial unique on `opening_id` where `state IN ('reserved','payment_pending','confirmed')`
+  - terminal pre-confirmation states (`reservation_expired`, `payment_failed`) are excluded so a new reservation can be created for the same opening
 
 Soft delete: **hard delete discouraged**; retain for finance/audit traceability.
 
@@ -705,7 +709,31 @@ Constraints/indexes:
 - INDEX `(provider_id, state)`
 - INDEX `(state, scheduled_at)`
 
-Recommended baseline table for payout traceability: `payout_items(payout_id, booking_id, payment_id, gross_amount, refund_amount, net_amount)` with indexes on `(payout_id)` and `(provider_id, booking_id)` via join path.
+### `payout_items`
+
+| Column | Type | Null | Notes |
+|---|---|---:|---|
+| id | uuid | no | PK |
+| payout_id | uuid | no | FK -> payouts.id |
+| provider_id | uuid | no | FK -> providers.id |
+| booking_id | uuid | yes | FK -> bookings.id |
+| payment_id | uuid | yes | FK -> payments.id |
+| gross_amount | bigint | no | minor units |
+| refund_amount | bigint | no | minor units |
+| net_amount | bigint | no | derived payout line amount |
+| currency | char(3) | no | ISO code |
+| created_at | timestamptz | no |  |
+
+Constraints/indexes:
+
+- PK `(id)`
+- CHECK `(gross_amount >= 0)`
+- CHECK `(refund_amount >= 0)`
+- CHECK `(net_amount = gross_amount - refund_amount)`
+- INDEX `(payout_id)`
+- INDEX `(provider_id, booking_id)`
+- INDEX `(provider_id, payment_id)`
+- UNIQUE `(payout_id, booking_id)` where `booking_id IS NOT NULL` (prevents duplicate booking lines inside one payout)
 
 ---
 
@@ -888,7 +916,7 @@ Constraints/indexes:
    - insert booking as `reserved`
    - transition opening to `reserved`
    - insert outbox message
-   - if reservation expires before confirmation, transition opening `reserved -> published` in timeout job transaction
+   - if reservation expires before confirmation, timeout job transitions booking to `reservation_expired` and opening `reserved -> published` in one transaction
 
 2. **Payment confirmation flow**: idempotent transition guard.
    - process payment event once (idempotency/webhook dedup)
