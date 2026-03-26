@@ -1341,6 +1341,6 @@ To avoid dumping placeholders, add only when the team starts implementing each f
 1. **Locking**: use canonical row locking (`SELECT ... FOR UPDATE`) on the opening row in booking create flow before reservability checks; advisory locking can be added as optional defense-in-depth, not as a replacement.
 2. **Idempotency**: enforce `Idempotency-Key` for all critical write endpoints from Batch 3.
 3. **Outbox**: publish domain events inside same transaction as aggregate writes.
-4. **Webhook dedup**: use `(provider, provider_event_id)` unique constraint before dispatch.
+4. **Webhook dedup**: persist each webhook in `stripe_webhook_events` and deduplicate on unique `stripe_event_id` before dispatch.
 5. **Authorization boundary**: consume upstream identity as `ActorContext`, enforce role/policy locally.
 6. **No fake completeness**: keep TODOs explicit and avoid pretending adapters are production-final.
