@@ -21,10 +21,48 @@ CREATE TABLE providers (
   provider_type VARCHAR(32) NOT NULL,
   owner_user_profile_id TEXT NULL,
   organization_id TEXT NULL,
+  display_name VARCHAR(255) NULL,
   status VARCHAR(32) NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (organization_id) REFERENCES organizations(id)
+);
+
+CREATE TABLE organizations (
+  id TEXT PRIMARY KEY,
+  legal_name VARCHAR(255) NOT NULL,
+  display_name VARCHAR(255) NOT NULL,
+  tax_id VARCHAR(64) NULL,
+  contact_email VARCHAR(255) NOT NULL,
+  contact_phone VARCHAR(64) NOT NULL,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
+CREATE UNIQUE INDEX idx_organizations_legal_name ON organizations(legal_name);
+
+CREATE TABLE users (
+  id TEXT PRIMARY KEY,
+  provider_id TEXT NOT NULL,
+  first_name VARCHAR(128) NOT NULL,
+  last_name VARCHAR(128) NOT NULL,
+  email VARCHAR(255) NOT NULL,
+  phone VARCHAR(64) NOT NULL,
+  password_hash VARCHAR(255) NULL,
+  status VARCHAR(32) NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (provider_id) REFERENCES providers(id)
+);
+CREATE UNIQUE INDEX idx_users_email ON users(email);
+
+CREATE TABLE user_roles (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  role_code VARCHAR(64) NOT NULL,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id)
+);
+CREATE UNIQUE INDEX idx_user_roles_user_role ON user_roles(user_id, role_code);
 
 CREATE TABLE service_offerings (
   id TEXT PRIMARY KEY,
@@ -116,3 +154,14 @@ CREATE TABLE stripe_webhook_events (
   processed_at TEXT NULL,
   failure_reason TEXT NULL
 );
+
+CREATE TABLE api_keys (
+  id TEXT PRIMARY KEY,
+  client_id VARCHAR(64) NOT NULL,
+  key_name VARCHAR(128) NOT NULL,
+  key_hash CHAR(64) NOT NULL UNIQUE,
+  key_prefix VARCHAR(16) NOT NULL,
+  created_at TEXT NOT NULL,
+  revoked_at TEXT NULL
+);
+CREATE INDEX idx_api_keys_client_active ON api_keys(client_id, revoked_at);

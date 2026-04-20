@@ -21,16 +21,28 @@ final class Router
 
     public function dispatch(Request $request): ApiResponse
     {
+        $path = (string) parse_url($request->path, PHP_URL_PATH);
+        $queryString = (string) parse_url($request->path, PHP_URL_QUERY);
+        parse_str($queryString, $queryParams);
+        $requestForRoute = new Request(
+            $request->method,
+            $path !== '' ? $path : $request->path,
+            $request->headers,
+            $request->body,
+            $request->attributes + ['query' => $queryParams],
+            $request->rawBody,
+        );
+
         foreach ($this->routes as $route) {
-            if ($route['method'] !== strtoupper($request->method)) {
+            if ($route['method'] !== strtoupper($requestForRoute->method)) {
                 continue;
             }
             $regex = '#^' . preg_replace('#\{([a-z_]+)\}#', '(?P<$1>[^/]+)', $route['pattern']) . '$#';
-            if (preg_match($regex, $request->path, $matches) === 1) {
+            if (preg_match($regex, $requestForRoute->path, $matches) === 1) {
                 $params = array_filter($matches, static fn ($k): bool => !is_int($k), ARRAY_FILTER_USE_KEY);
 
                 try {
-                    return $route['handler']($request, $params);
+                    return $route['handler']($requestForRoute, $params);
                 } catch (ApiException $e) {
                     return new ApiResponse($e->statusCode, $e->error->toArray());
                 }
