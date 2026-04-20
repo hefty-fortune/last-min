@@ -18,13 +18,26 @@ final class PdoApiKeyRepository implements ApiKeyRepository
 
     public function create(string $clientId, string $name, string $plainApiKey): array
     {
+        return $this->createForActor('client', $clientId, ['client'], $name, $plainApiKey);
+    }
+
+    public function createForActor(string $actorType, string $actorId, array $roles, string $name, string $plainApiKey): array
+    {
+        if ($roles === []) {
+            $roles = [$actorType];
+        }
+
         $id = self::uuid();
         $now = (new \DateTimeImmutable())->format(DATE_ATOM);
+        $clientId = $actorType === 'client' ? $actorId : 'actor:' . $actorType . ':' . $actorId;
         try {
-            $stmt = $this->pdo->prepare('INSERT INTO api_keys (id, client_id, key_name, key_hash, key_prefix, created_at, revoked_at) VALUES (:id, :client_id, :key_name, :key_hash, :key_prefix, :created_at, NULL)');
+            $stmt = $this->pdo->prepare('INSERT INTO api_keys (id, client_id, actor_type, actor_id, actor_roles, key_name, key_hash, key_prefix, created_at, revoked_at) VALUES (:id, :client_id, :actor_type, :actor_id, :actor_roles, :key_name, :key_hash, :key_prefix, :created_at, NULL)');
             $stmt->execute([
                 'id' => $id,
                 'client_id' => $clientId,
+                'actor_type' => $actorType,
+                'actor_id' => $actorId,
+                'actor_roles' => json_encode(array_values(array_unique($roles)), JSON_THROW_ON_ERROR),
                 'key_name' => $name,
                 'key_hash' => hash('sha256', $plainApiKey),
                 'key_prefix' => substr($plainApiKey, 0, 10),
@@ -41,6 +54,9 @@ final class PdoApiKeyRepository implements ApiKeyRepository
         return [
             'api_key_id' => $id,
             'client_id' => $clientId,
+            'actor_type' => $actorType,
+            'actor_id' => $actorId,
+            'roles' => array_values(array_unique($roles)),
             'name' => $name,
         ];
     }

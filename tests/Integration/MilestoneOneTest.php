@@ -55,6 +55,7 @@ final class MilestoneOneTest extends TestCase
 {
     private PDO $pdo;
     private Router $router;
+    private PdoApiKeyRepository $apiKeys;
 
     protected function setUp(): void
     {
@@ -68,6 +69,7 @@ final class MilestoneOneTest extends TestCase
 
         $idempotency = new IdempotencyExecutor(new PdoIdempotencyStore($this->pdo));
         $apiKeys = new PdoApiKeyRepository($this->pdo);
+        $this->apiKeys = $apiKeys;
         $this->router = new Router();
 
         (new ApiV1Routes(new ActorContextResolver(new ApiKeyBearerTokenActorResolver($apiKeys))))->register(
@@ -428,6 +430,19 @@ final class MilestoneOneTest extends TestCase
         self::assertSame(200, $me->statusCode);
         self::assertSame($clientId, $me->body['data']['actor_id']);
         self::assertSame(['client'], $me->body['data']['roles']);
+    }
+
+    public function testAdminBearerTokenCanCallProtectedAdminEndpoint(): void
+    {
+        $created = $this->apiKeys->createForActor('admin', 'local-dev-admin', ['admin'], 'FE admin token', 'lm_dev_admin_fixture_1234567890');
+
+        $response = $this->router->dispatch(new Request('GET', '/api/v1/admin/organizations', [
+            'Authorization' => 'Bearer lm_dev_admin_fixture_1234567890',
+        ], []));
+
+        self::assertSame(200, $response->statusCode);
+        self::assertSame([], $response->body['data']);
+        self::assertSame('admin', $created['actor_type']);
     }
 
     public function testCreateApiKeyFailsValidationWhenClientIdIsInvalid(): void
