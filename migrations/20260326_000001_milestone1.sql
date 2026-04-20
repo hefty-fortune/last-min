@@ -16,18 +16,6 @@ CREATE TABLE actor_role_assignments (
 );
 CREATE UNIQUE INDEX idx_actor_role_assignments_active ON actor_role_assignments(user_profile_id, role_code) WHERE revoked_at IS NULL;
 
-CREATE TABLE providers (
-  id TEXT PRIMARY KEY,
-  provider_type VARCHAR(32) NOT NULL,
-  owner_user_profile_id TEXT NULL,
-  organization_id TEXT NULL,
-  display_name VARCHAR(255) NULL,
-  status VARCHAR(32) NOT NULL,
-  created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL,
-  FOREIGN KEY (organization_id) REFERENCES organizations(id)
-);
-
 CREATE TABLE organizations (
   id TEXT PRIMARY KEY,
   legal_name VARCHAR(255) NOT NULL,
@@ -39,6 +27,19 @@ CREATE TABLE organizations (
   updated_at TEXT NOT NULL
 );
 CREATE UNIQUE INDEX idx_organizations_legal_name ON organizations(legal_name);
+
+
+CREATE TABLE providers (
+  id TEXT PRIMARY KEY,
+  provider_type VARCHAR(32) NOT NULL,
+  owner_user_profile_id TEXT NULL,
+  organization_id TEXT NULL,
+  display_name VARCHAR(255) NULL,
+  status VARCHAR(32) NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (organization_id) REFERENCES organizations(id)
+);
 
 CREATE TABLE users (
   id TEXT PRIMARY KEY,
