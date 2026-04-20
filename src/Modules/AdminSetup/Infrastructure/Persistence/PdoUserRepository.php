@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace App\Modules\AdminSetup\Infrastructure\Persistence;
 
+use App\Common\Api\ApiError;
+use App\Common\Api\ApiException;
 use App\Modules\AdminSetup\Application\Port\UserRepository;
 use PDO;
+use PDOException;
 
 final class PdoUserRepository implements UserRepository
 {
@@ -51,6 +54,10 @@ final class PdoUserRepository implements UserRepository
                 $this->pdo->rollBack();
             }
 
+            if ($e instanceof PDOException && $this->isUniqueViolation($e, 'users.email')) {
+                throw new ApiException(409, new ApiError('CONFLICT_USER_EMAIL_EXISTS', 'A user with this email already exists.'));
+            }
+
             throw $e;
         }
 
@@ -65,6 +72,58 @@ final class PdoUserRepository implements UserRepository
             'status' => 'active',
             'password_set' => false,
         ];
+    }
+
+    public function listByProviderId(?string $providerId): array
+    {
+        if ($providerId !== null && trim($providerId) !== '') {
+            $stmt = $this->pdo->prepare('SELECT id, provider_id, first_name, last_name, email, phone, status, created_at, updated_at FROM users WHERE provider_id = :provider_id ORDER BY created_at ASC');
+            $stmt->execute(['provider_id' => $providerId]);
+        } else {
+            $stmt = $this->pdo->query('SELECT id, provider_id, first_name, last_name, email, phone, status, created_at, updated_at FROM users ORDER BY created_at ASC');
+        }
+
+        $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        if ($users === []) {
+            return [];
+        }
+
+        $userIds = array_map(static fn (array $row): string => (string) $row['id'], $users);
+        $placeholders = implode(',', array_fill(0, count($userIds), '?'));
+        $roleStmt = $this->pdo->prepare(sprintf('SELECT user_id, role_code FROM user_roles WHERE user_id IN (%s) ORDER BY role_code ASC', $placeholders));
+        $roleStmt->execute($userIds);
+        $roleRows = $roleStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $rolesByUserId = [];
+        foreach ($roleRows as $roleRow) {
+            $rolesByUserId[(string) $roleRow['user_id']][] = (string) $roleRow['role_code'];
+        }
+
+        return array_map(static function (array $row) use ($rolesByUserId): array {
+            $userId = (string) $row['id'];
+
+            return [
+                'user_id' => $userId,
+                'provider_id' => (string) $row['provider_id'],
+                'first_name' => (string) $row['first_name'],
+                'last_name' => (string) $row['last_name'],
+                'email' => (string) $row['email'],
+                'phone' => (string) $row['phone'],
+                'status' => (string) $row['status'],
+                'roles' => $rolesByUserId[$userId] ?? [],
+                'created_at' => (string) $row['created_at'],
+                'updated_at' => (string) $row['updated_at'],
+            ];
+        }, $users);
+    }
+
+    private function isUniqueViolation(PDOException $e, string $needle): bool
+    {
+        if (($e->errorInfo[0] ?? null) !== '23000') {
+            return false;
+        }
+
+        return str_contains(strtolower($e->getMessage()), strtolower($needle));
     }
 
     private static function uuid(): string

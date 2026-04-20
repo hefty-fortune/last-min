@@ -9,11 +9,14 @@ use App\Common\Http\Request;
 use App\Common\Security\ActorContext;
 use App\Modules\AdminSetup\Application\Dto\CreateOrganizationRequest;
 use App\Modules\AdminSetup\Application\Service\CreateOrganizationService;
+use App\Modules\AdminSetup\Application\Service\ListOrganizationsService;
 
 final class OrganizationAdminController
 {
-    public function __construct(private CreateOrganizationService $service)
-    {
+    public function __construct(
+        private CreateOrganizationService $service,
+        private ListOrganizationsService $listService,
+    ) {
     }
 
     public function create(ActorContext $actor, Request $request): ApiResponse
@@ -27,5 +30,12 @@ final class OrganizationAdminController
         ));
 
         return ApiResponse::created(['data' => $data, 'meta' => ['request_id' => uniqid('req_', true)]]);
+    }
+
+    public function list(ActorContext $actor): ApiResponse
+    {
+        $data = $this->listService->list($actor);
+
+        return ApiResponse::ok(['data' => $data, 'meta' => ['request_id' => uniqid('req_', true)]]);
     }
 }

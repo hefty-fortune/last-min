@@ -41,9 +41,19 @@ final class ApiV1Routes
             return $adminOrganizations->create($actor, $request);
         });
 
+        $router->add('GET', '/api/v1/admin/organizations', function (Request $request) use ($adminOrganizations) {
+            $actor = $this->resolver->resolve($request->headers);
+            return $adminOrganizations->list($actor);
+        });
+
         $router->add('POST', '/api/v1/admin/providers', function (Request $request) use ($adminProviders) {
             $actor = $this->resolver->resolve($request->headers);
             return $adminProviders->create($actor, $request);
+        });
+
+        $router->add('GET', '/api/v1/admin/providers', function (Request $request) use ($adminProviders) {
+            $actor = $this->resolver->resolve($request->headers);
+            return $adminProviders->list($actor, $request);
         });
 
         $router->add('POST', '/api/v1/admin/users', function (Request $request) use ($adminUsers) {
@@ -51,14 +61,24 @@ final class ApiV1Routes
             return $adminUsers->create($actor, $request);
         });
 
+        $router->add('GET', '/api/v1/admin/users', function (Request $request) use ($adminUsers) {
+            $actor = $this->resolver->resolve($request->headers);
+            return $adminUsers->list($actor, $request);
+        });
+
         $router->add('POST', '/api/v1/api-key', function (Request $request) use ($apiKeys) {
             $actor = $this->resolver->resolve($request->headers);
             return $apiKeys->create($actor, $request);
         });
 
-        $router->add('DELETE', '/api/v1/api-key', function (Request $request) use ($apiKeys) {
+        $router->add('GET', '/api/v1/api-keys', function (Request $request) use ($apiKeys) {
             $actor = $this->resolver->resolve($request->headers);
-            return $apiKeys->delete($actor, $request);
+            return $apiKeys->list($actor, $request);
+        });
+
+        $router->add('DELETE', '/api/v1/api-key/{api_key_id}', function (Request $request, array $params) use ($apiKeys) {
+            $actor = $this->resolver->resolve($request->headers);
+            return $apiKeys->delete($actor, $params['api_key_id']);
         });
 
         $router->add('GET', '/api/v1/me', function (Request $request) use ($me) {

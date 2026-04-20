@@ -8,4 +8,6 @@ interface UserRepository
 {
     /** @param list<string> $roles */
     public function create(array $user, array $roles): array;
+    /** @return list<array<string, mixed>> */
+    public function listByProviderId(?string $providerId): array;
 }

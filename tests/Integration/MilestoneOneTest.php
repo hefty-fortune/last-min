@@ -14,6 +14,9 @@ use App\Modules\AdminSetup\Api\UserAdminController;
 use App\Modules\AdminSetup\Application\Service\CreateOrganizationService;
 use App\Modules\AdminSetup\Application\Service\CreateProviderService as CreateAdminProviderService;
 use App\Modules\AdminSetup\Application\Service\CreateUserService;
+use App\Modules\AdminSetup\Application\Service\ListOrganizationsService;
+use App\Modules\AdminSetup\Application\Service\ListProvidersService;
+use App\Modules\AdminSetup\Application\Service\ListUsersService;
 use App\Modules\AdminSetup\Infrastructure\Persistence\PdoAdminProviderRepository;
 use App\Modules\AdminSetup\Infrastructure\Persistence\PdoOrganizationRepository;
 use App\Modules\AdminSetup\Infrastructure\Persistence\PdoUserRepository;
@@ -25,6 +28,7 @@ use App\Modules\IdentityAccess\Api\MeController;
 use App\Modules\IdentityAccess\Application\Query\GetMeQueryService;
 use App\Modules\IdentityAccess\Application\Service\CreateApiKeyService;
 use App\Modules\IdentityAccess\Application\Service\DeleteApiKeyService;
+use App\Modules\IdentityAccess\Application\Service\ListApiKeysService;
 use App\Modules\IdentityAccess\Infrastructure\Persistence\PdoApiKeyRepository;
 use App\Modules\IdentityAccess\Infrastructure\Security\ApiKeyBearerTokenActorResolver;
 use App\Modules\Openings\Api\OpeningController;
@@ -68,10 +72,10 @@ final class MilestoneOneTest extends TestCase
 
         (new ApiV1Routes(new ActorContextResolver(new ApiKeyBearerTokenActorResolver($apiKeys))))->register(
             $this->router,
-            new OrganizationAdminController(new CreateOrganizationService(new PdoOrganizationRepository($this->pdo))),
-            new ProviderAdminController(new CreateAdminProviderService(new PdoOrganizationRepository($this->pdo), new PdoAdminProviderRepository($this->pdo))),
-            new UserAdminController(new CreateUserService(new PdoAdminProviderRepository($this->pdo), new PdoUserRepository($this->pdo))),
-            new ApiKeyController(new CreateApiKeyService($apiKeys), new DeleteApiKeyService($apiKeys)),
+            new OrganizationAdminController(new CreateOrganizationService(new PdoOrganizationRepository($this->pdo)), new ListOrganizationsService(new PdoOrganizationRepository($this->pdo))),
+            new ProviderAdminController(new CreateAdminProviderService(new PdoOrganizationRepository($this->pdo), new PdoAdminProviderRepository($this->pdo)), new ListProvidersService(new PdoAdminProviderRepository($this->pdo))),
+            new UserAdminController(new CreateUserService(new PdoAdminProviderRepository($this->pdo), new PdoUserRepository($this->pdo)), new ListUsersService(new PdoUserRepository($this->pdo))),
+            new ApiKeyController(new CreateApiKeyService($apiKeys), new DeleteApiKeyService($apiKeys), new ListApiKeysService($apiKeys)),
             new MeController(new GetMeQueryService()),
             new ProviderController(new CreateProviderService(new PdoProviderRepository($this->pdo)), $idempotency),
             new OpeningController(new CreateOpeningService(new PdoOpeningRepository($this->pdo)), $idempotency),
@@ -283,6 +287,127 @@ final class MilestoneOneTest extends TestCase
         self::assertSame('VALIDATION_PROVIDER_NOT_FOUND', $response->body['error']['code']);
     }
 
+    public function testCreateUserReturnsConflictWhenEmailAlreadyExists(): void
+    {
+        $organization = $this->router->dispatch(new Request('POST', '/api/v1/admin/organizations', $this->actorHeaders(['admin']), [
+            'legal_name' => 'Dup User d.o.o.',
+            'display_name' => 'Dup User',
+            'contact_email' => 'dup-user-org@example.com',
+            'contact_phone' => '+38591112237',
+        ]));
+        $provider = $this->router->dispatch(new Request('POST', '/api/v1/admin/providers', $this->actorHeaders(['admin']), [
+            'organization_id' => $organization->body['data']['organization_id'],
+            'display_name' => 'Dup User Provider',
+            'status' => 'active',
+        ]));
+
+        $payload = [
+            'first_name' => 'Ana',
+            'last_name' => 'Horvat',
+            'email' => 'dup-user@example.com',
+            'phone' => '+38591111222',
+            'roles' => ['provider_staff'],
+            'provider_id' => $provider->body['data']['provider_id'],
+        ];
+
+        $first = $this->router->dispatch(new Request('POST', '/api/v1/admin/users', $this->actorHeaders(['admin']), $payload));
+        self::assertSame(201, $first->statusCode);
+
+        $second = $this->router->dispatch(new Request('POST', '/api/v1/admin/users', $this->actorHeaders(['admin']), $payload));
+        self::assertSame(409, $second->statusCode);
+        self::assertSame('CONFLICT_USER_EMAIL_EXISTS', $second->body['error']['code']);
+    }
+
+    public function testGetOrganizationsReturnsCreatedRecords(): void
+    {
+        $created = $this->router->dispatch(new Request('POST', '/api/v1/admin/organizations', $this->actorHeaders(['admin']), [
+            'legal_name' => 'List Org d.o.o.',
+            'display_name' => 'List Org',
+            'contact_email' => 'list-org@example.com',
+            'contact_phone' => '+38591112238',
+        ]));
+
+        $list = $this->router->dispatch(new Request('GET', '/api/v1/admin/organizations', $this->actorHeaders(['admin']), []));
+        self::assertSame(200, $list->statusCode);
+
+        $organizationIds = array_column($list->body['data'], 'organization_id');
+        self::assertContains($created->body['data']['organization_id'], $organizationIds);
+    }
+
+    public function testGetProvidersCanFilterByOrganizationId(): void
+    {
+        $orgA = $this->router->dispatch(new Request('POST', '/api/v1/admin/organizations', $this->actorHeaders(['admin']), [
+            'legal_name' => 'Filter Org A d.o.o.',
+            'display_name' => 'Filter Org A',
+            'contact_email' => 'filter-a@example.com',
+            'contact_phone' => '+38591112239',
+        ]));
+        $orgB = $this->router->dispatch(new Request('POST', '/api/v1/admin/organizations', $this->actorHeaders(['admin']), [
+            'legal_name' => 'Filter Org B d.o.o.',
+            'display_name' => 'Filter Org B',
+            'contact_email' => 'filter-b@example.com',
+            'contact_phone' => '+38591112240',
+        ]));
+
+        $providerA = $this->router->dispatch(new Request('POST', '/api/v1/admin/providers', $this->actorHeaders(['admin']), [
+            'organization_id' => $orgA->body['data']['organization_id'],
+            'display_name' => 'Provider A',
+            'status' => 'active',
+        ]));
+        $this->router->dispatch(new Request('POST', '/api/v1/admin/providers', $this->actorHeaders(['admin']), [
+            'organization_id' => $orgB->body['data']['organization_id'],
+            'display_name' => 'Provider B',
+            'status' => 'active',
+        ]));
+
+        $list = $this->router->dispatch(new Request('GET', '/api/v1/admin/providers?organization_id=' . $orgA->body['data']['organization_id'], $this->actorHeaders(['admin']), []));
+        self::assertSame(200, $list->statusCode);
+        self::assertCount(1, $list->body['data']);
+        self::assertSame($providerA->body['data']['provider_id'], $list->body['data'][0]['provider_id']);
+    }
+
+    public function testGetUsersCanFilterByProviderId(): void
+    {
+        $organization = $this->router->dispatch(new Request('POST', '/api/v1/admin/organizations', $this->actorHeaders(['admin']), [
+            'legal_name' => 'Filter User d.o.o.',
+            'display_name' => 'Filter User',
+            'contact_email' => 'filter-user@example.com',
+            'contact_phone' => '+38591112241',
+        ]));
+        $providerA = $this->router->dispatch(new Request('POST', '/api/v1/admin/providers', $this->actorHeaders(['admin']), [
+            'organization_id' => $organization->body['data']['organization_id'],
+            'display_name' => 'User Provider A',
+            'status' => 'active',
+        ]));
+        $providerB = $this->router->dispatch(new Request('POST', '/api/v1/admin/providers', $this->actorHeaders(['admin']), [
+            'organization_id' => $organization->body['data']['organization_id'],
+            'display_name' => 'User Provider B',
+            'status' => 'active',
+        ]));
+
+        $userA = $this->router->dispatch(new Request('POST', '/api/v1/admin/users', $this->actorHeaders(['admin']), [
+            'first_name' => 'User',
+            'last_name' => 'A',
+            'email' => 'filter-user-a@example.com',
+            'phone' => '+38591112242',
+            'roles' => ['provider_staff'],
+            'provider_id' => $providerA->body['data']['provider_id'],
+        ]));
+        $this->router->dispatch(new Request('POST', '/api/v1/admin/users', $this->actorHeaders(['admin']), [
+            'first_name' => 'User',
+            'last_name' => 'B',
+            'email' => 'filter-user-b@example.com',
+            'phone' => '+38591112243',
+            'roles' => ['provider_staff'],
+            'provider_id' => $providerB->body['data']['provider_id'],
+        ]));
+
+        $list = $this->router->dispatch(new Request('GET', '/api/v1/admin/users?provider_id=' . $providerA->body['data']['provider_id'], $this->actorHeaders(['admin']), []));
+        self::assertSame(200, $list->statusCode);
+        self::assertCount(1, $list->body['data']);
+        self::assertSame($userA->body['data']['user_id'], $list->body['data'][0]['user_id']);
+    }
+
     public function testAdminCanCreateApiKeyAndUseItAsBearerToken(): void
     {
         $clientId = '8f726eaf-bc9a-4010-a8b8-4ee3f39b7c10';
@@ -316,7 +441,28 @@ final class MilestoneOneTest extends TestCase
         self::assertSame('VALIDATION_CLIENT_ID_INVALID', $response->body['error']['code']);
     }
 
-    public function testAdminCanDeleteApiKeyByClientIdQueryParam(): void
+    public function testGetApiKeysReturnsMetadataOnlyWithoutRawToken(): void
+    {
+        $clientId = '2deb6808-3f17-4e98-a5fc-867b44db630f';
+        $create = $this->router->dispatch(new Request('POST', '/api/v1/api-key', $this->actorHeaders(['admin']), [
+            'client_id' => $clientId,
+            'name' => 'List metadata key',
+        ]));
+        self::assertSame(201, $create->statusCode);
+
+        $list = $this->router->dispatch(new Request('GET', '/api/v1/api-keys?client_id=' . $clientId, $this->actorHeaders(['admin']), []));
+        self::assertSame(200, $list->statusCode);
+        self::assertCount(1, $list->body['data']);
+        self::assertArrayHasKey('api_key_id', $list->body['data'][0]);
+        self::assertArrayHasKey('name', $list->body['data'][0]);
+        self::assertArrayHasKey('client_id', $list->body['data'][0]);
+        self::assertArrayHasKey('created_at', $list->body['data'][0]);
+        self::assertArrayHasKey('revoked_at', $list->body['data'][0]);
+        self::assertArrayHasKey('is_active', $list->body['data'][0]);
+        self::assertArrayNotHasKey('api_key', $list->body['data'][0]);
+    }
+
+    public function testAdminCanRevokeApiKeyByApiKeyId(): void
     {
         $clientId = '6e869011-faa2-4df8-89f5-0a7f131fcf01';
         $create = $this->router->dispatch(new Request('POST', '/api/v1/api-key', $this->actorHeaders(['admin']), [
@@ -324,10 +470,12 @@ final class MilestoneOneTest extends TestCase
             'name' => 'Temporary key',
         ]));
         $plainKey = $create->body['data']['api_key'];
+        $apiKeyId = $create->body['data']['api_key_id'];
 
-        $delete = $this->router->dispatch(new Request('DELETE', '/api/v1/api-key?client_id=' . $clientId, $this->actorHeaders(['admin']), []));
+        $delete = $this->router->dispatch(new Request('DELETE', '/api/v1/api-key/' . $apiKeyId, $this->actorHeaders(['admin']), []));
         self::assertSame(200, $delete->statusCode);
-        self::assertTrue($delete->body['data']['deleted']);
+        self::assertTrue($delete->body['data']['revoked']);
+        self::assertSame($apiKeyId, $delete->body['data']['api_key_id']);
 
         $meAfterDelete = $this->router->dispatch(new Request('GET', '/api/v1/me', [
             'Authorization' => 'Bearer ' . $plainKey,

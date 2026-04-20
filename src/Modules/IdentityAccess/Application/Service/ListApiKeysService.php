@@ -9,23 +9,21 @@ use App\Common\Api\ApiException;
 use App\Common\Security\ActorContext;
 use App\Modules\IdentityAccess\Application\Port\ApiKeyRepository;
 
-final class DeleteApiKeyService
+final class ListApiKeysService
 {
     public function __construct(private ApiKeyRepository $keys)
     {
     }
 
-    public function delete(ActorContext $actor, string $apiKeyId): void
+    public function list(ActorContext $actor, string $clientId): array
     {
         $this->assertAdmin($actor);
 
-        if (!preg_match('/^[a-f0-9-]{36}$/i', $apiKeyId)) {
-            throw new ApiException(422, new ApiError('VALIDATION_API_KEY_ID_INVALID', 'api_key_id must be a UUID string.'));
+        if (!preg_match('/^[a-f0-9-]{36}$/i', $clientId)) {
+            throw new ApiException(422, new ApiError('VALIDATION_CLIENT_ID_INVALID', 'client_id must be a UUID string.'));
         }
 
-        if (!$this->keys->revokeByApiKeyId($apiKeyId)) {
-            throw new ApiException(404, new ApiError('API_KEY_NOT_FOUND', 'No active API key found for provided api_key_id.'));
-        }
+        return $this->keys->listByClientId($clientId);
     }
 
     private function assertAdmin(ActorContext $actor): void
