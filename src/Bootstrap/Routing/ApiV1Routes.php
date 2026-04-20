@@ -46,6 +46,11 @@ final class ApiV1Routes
             return $adminOrganizations->list($actor);
         });
 
+        $router->add('GET', '/api/v1/admin/organizations/{organization_id}', function (Request $request, array $params) use ($adminOrganizations) {
+            $actor = $this->resolver->resolve($request->headers);
+            return $adminOrganizations->get($actor, $params['organization_id']);
+        });
+
         $router->add('POST', '/api/v1/admin/providers', function (Request $request) use ($adminProviders) {
             $actor = $this->resolver->resolve($request->headers);
             return $adminProviders->create($actor, $request);
@@ -56,6 +61,11 @@ final class ApiV1Routes
             return $adminProviders->list($actor, $request);
         });
 
+        $router->add('GET', '/api/v1/admin/providers/{provider_id}', function (Request $request, array $params) use ($adminProviders) {
+            $actor = $this->resolver->resolve($request->headers);
+            return $adminProviders->get($actor, $params['provider_id']);
+        });
+
         $router->add('POST', '/api/v1/admin/users', function (Request $request) use ($adminUsers) {
             $actor = $this->resolver->resolve($request->headers);
             return $adminUsers->create($actor, $request);
@@ -64,6 +74,11 @@ final class ApiV1Routes
         $router->add('GET', '/api/v1/admin/users', function (Request $request) use ($adminUsers) {
             $actor = $this->resolver->resolve($request->headers);
             return $adminUsers->list($actor, $request);
+        });
+
+        $router->add('GET', '/api/v1/admin/users/{user_id}', function (Request $request, array $params) use ($adminUsers) {
+            $actor = $this->resolver->resolve($request->headers);
+            return $adminUsers->get($actor, $params['user_id']);
         });
 
         $router->add('POST', '/api/v1/api-key', function (Request $request) use ($apiKeys) {

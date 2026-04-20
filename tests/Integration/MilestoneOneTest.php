@@ -14,6 +14,9 @@ use App\Modules\AdminSetup\Api\UserAdminController;
 use App\Modules\AdminSetup\Application\Service\CreateOrganizationService;
 use App\Modules\AdminSetup\Application\Service\CreateProviderService as CreateAdminProviderService;
 use App\Modules\AdminSetup\Application\Service\CreateUserService;
+use App\Modules\AdminSetup\Application\Service\GetOrganizationService;
+use App\Modules\AdminSetup\Application\Service\GetProviderService;
+use App\Modules\AdminSetup\Application\Service\GetUserService;
 use App\Modules\AdminSetup\Application\Service\ListOrganizationsService;
 use App\Modules\AdminSetup\Application\Service\ListProvidersService;
 use App\Modules\AdminSetup\Application\Service\ListUsersService;
@@ -74,9 +77,21 @@ final class MilestoneOneTest extends TestCase
 
         (new ApiV1Routes(new ActorContextResolver(new ApiKeyBearerTokenActorResolver($apiKeys))))->register(
             $this->router,
-            new OrganizationAdminController(new CreateOrganizationService(new PdoOrganizationRepository($this->pdo)), new ListOrganizationsService(new PdoOrganizationRepository($this->pdo))),
-            new ProviderAdminController(new CreateAdminProviderService(new PdoOrganizationRepository($this->pdo), new PdoAdminProviderRepository($this->pdo)), new ListProvidersService(new PdoAdminProviderRepository($this->pdo))),
-            new UserAdminController(new CreateUserService(new PdoAdminProviderRepository($this->pdo), new PdoUserRepository($this->pdo)), new ListUsersService(new PdoUserRepository($this->pdo))),
+            new OrganizationAdminController(
+                new CreateOrganizationService(new PdoOrganizationRepository($this->pdo)),
+                new GetOrganizationService(new PdoOrganizationRepository($this->pdo)),
+                new ListOrganizationsService(new PdoOrganizationRepository($this->pdo))
+            ),
+            new ProviderAdminController(
+                new CreateAdminProviderService(new PdoOrganizationRepository($this->pdo), new PdoAdminProviderRepository($this->pdo)),
+                new GetProviderService(new PdoAdminProviderRepository($this->pdo)),
+                new ListProvidersService(new PdoAdminProviderRepository($this->pdo))
+            ),
+            new UserAdminController(
+                new CreateUserService(new PdoAdminProviderRepository($this->pdo), new PdoUserRepository($this->pdo)),
+                new GetUserService(new PdoUserRepository($this->pdo)),
+                new ListUsersService(new PdoUserRepository($this->pdo))
+            ),
             new ApiKeyController(new CreateApiKeyService($apiKeys), new DeleteApiKeyService($apiKeys), new ListApiKeysService($apiKeys)),
             new MeController(new GetMeQueryService()),
             new ProviderController(new CreateProviderService(new PdoProviderRepository($this->pdo)), $idempotency),
@@ -336,6 +351,29 @@ final class MilestoneOneTest extends TestCase
         self::assertContains($created->body['data']['organization_id'], $organizationIds);
     }
 
+    public function testGetOrganizationByIdReturnsRecord(): void
+    {
+        $created = $this->router->dispatch(new Request('POST', '/api/v1/admin/organizations', $this->actorHeaders(['admin']), [
+            'legal_name' => 'Org Detail d.o.o.',
+            'display_name' => 'Org Detail',
+            'contact_email' => 'org-detail@example.com',
+            'contact_phone' => '+38591112244',
+        ]));
+
+        $response = $this->router->dispatch(new Request('GET', '/api/v1/admin/organizations/' . $created->body['data']['organization_id'], $this->actorHeaders(['admin']), []));
+        self::assertSame(200, $response->statusCode);
+        self::assertSame($created->body['data']['organization_id'], $response->body['data']['organization_id']);
+        self::assertSame('Org Detail d.o.o.', $response->body['data']['legal_name']);
+    }
+
+    public function testGetOrganizationByIdReturnsNotFoundWhenMissing(): void
+    {
+        $response = $this->router->dispatch(new Request('GET', '/api/v1/admin/organizations/missing-organization-id', $this->actorHeaders(['admin']), []));
+
+        self::assertSame(404, $response->statusCode);
+        self::assertSame('ORGANIZATION_NOT_FOUND', $response->body['error']['code']);
+    }
+
     public function testGetProvidersCanFilterByOrganizationId(): void
     {
         $orgA = $this->router->dispatch(new Request('POST', '/api/v1/admin/organizations', $this->actorHeaders(['admin']), [
@@ -366,6 +404,34 @@ final class MilestoneOneTest extends TestCase
         self::assertSame(200, $list->statusCode);
         self::assertCount(1, $list->body['data']);
         self::assertSame($providerA->body['data']['provider_id'], $list->body['data'][0]['provider_id']);
+    }
+
+    public function testGetProviderByIdReturnsRecord(): void
+    {
+        $organization = $this->router->dispatch(new Request('POST', '/api/v1/admin/organizations', $this->actorHeaders(['admin']), [
+            'legal_name' => 'Provider Detail d.o.o.',
+            'display_name' => 'Provider Detail',
+            'contact_email' => 'provider-detail@example.com',
+            'contact_phone' => '+38591112245',
+        ]));
+        $created = $this->router->dispatch(new Request('POST', '/api/v1/admin/providers', $this->actorHeaders(['admin']), [
+            'organization_id' => $organization->body['data']['organization_id'],
+            'display_name' => 'Provider Detail One',
+            'status' => 'active',
+        ]));
+
+        $response = $this->router->dispatch(new Request('GET', '/api/v1/admin/providers/' . $created->body['data']['provider_id'], $this->actorHeaders(['admin']), []));
+        self::assertSame(200, $response->statusCode);
+        self::assertSame($created->body['data']['provider_id'], $response->body['data']['provider_id']);
+        self::assertSame($organization->body['data']['organization_id'], $response->body['data']['organization_id']);
+    }
+
+    public function testGetProviderByIdReturnsNotFoundWhenMissing(): void
+    {
+        $response = $this->router->dispatch(new Request('GET', '/api/v1/admin/providers/missing-provider-id', $this->actorHeaders(['admin']), []));
+
+        self::assertSame(404, $response->statusCode);
+        self::assertSame('PROVIDER_NOT_FOUND', $response->body['error']['code']);
     }
 
     public function testGetUsersCanFilterByProviderId(): void
@@ -408,6 +474,44 @@ final class MilestoneOneTest extends TestCase
         self::assertSame(200, $list->statusCode);
         self::assertCount(1, $list->body['data']);
         self::assertSame($userA->body['data']['user_id'], $list->body['data'][0]['user_id']);
+    }
+
+    public function testGetUserByIdReturnsRecord(): void
+    {
+        $organization = $this->router->dispatch(new Request('POST', '/api/v1/admin/organizations', $this->actorHeaders(['admin']), [
+            'legal_name' => 'User Detail d.o.o.',
+            'display_name' => 'User Detail',
+            'contact_email' => 'user-detail@example.com',
+            'contact_phone' => '+38591112246',
+        ]));
+        $provider = $this->router->dispatch(new Request('POST', '/api/v1/admin/providers', $this->actorHeaders(['admin']), [
+            'organization_id' => $organization->body['data']['organization_id'],
+            'display_name' => 'User Detail Provider',
+            'status' => 'active',
+        ]));
+        $created = $this->router->dispatch(new Request('POST', '/api/v1/admin/users', $this->actorHeaders(['admin']), [
+            'first_name' => 'User',
+            'last_name' => 'Detail',
+            'email' => 'user-detail-one@example.com',
+            'phone' => '+38591112247',
+            'roles' => ['provider_manager', 'provider_staff'],
+            'provider_id' => $provider->body['data']['provider_id'],
+        ]));
+
+        $response = $this->router->dispatch(new Request('GET', '/api/v1/admin/users/' . $created->body['data']['user_id'], $this->actorHeaders(['admin']), []));
+        self::assertSame(200, $response->statusCode);
+        self::assertSame($created->body['data']['user_id'], $response->body['data']['user_id']);
+        self::assertSame($provider->body['data']['provider_id'], $response->body['data']['provider_id']);
+        self::assertSame(['provider_manager', 'provider_staff'], $response->body['data']['roles']);
+        self::assertArrayNotHasKey('password_hash', $response->body['data']);
+    }
+
+    public function testGetUserByIdReturnsNotFoundWhenMissing(): void
+    {
+        $response = $this->router->dispatch(new Request('GET', '/api/v1/admin/users/missing-user-id', $this->actorHeaders(['admin']), []));
+
+        self::assertSame(404, $response->statusCode);
+        self::assertSame('USER_NOT_FOUND', $response->body['error']['code']);
     }
 
     public function testAdminCanCreateApiKeyAndUseItAsBearerToken(): void
