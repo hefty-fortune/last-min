@@ -45,6 +45,28 @@ final class PdoAdminProviderRepository implements AdminProviderRepository
         return $stmt->fetchColumn() !== false;
     }
 
+    public function listByOrganizationId(?string $organizationId): array
+    {
+        if ($organizationId !== null && trim($organizationId) !== '') {
+            $stmt = $this->pdo->prepare('SELECT id, organization_id, display_name, provider_type, status, created_at, updated_at FROM providers WHERE organization_id = :organization_id ORDER BY created_at ASC');
+            $stmt->execute(['organization_id' => $organizationId]);
+        } else {
+            $stmt = $this->pdo->query('SELECT id, organization_id, display_name, provider_type, status, created_at, updated_at FROM providers ORDER BY created_at ASC');
+        }
+
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        return array_map(static fn (array $row): array => [
+            'provider_id' => (string) $row['id'],
+            'organization_id' => $row['organization_id'] !== null ? (string) $row['organization_id'] : null,
+            'display_name' => $row['display_name'] !== null ? (string) $row['display_name'] : null,
+            'provider_type' => (string) $row['provider_type'],
+            'status' => (string) $row['status'],
+            'created_at' => (string) $row['created_at'],
+            'updated_at' => (string) $row['updated_at'],
+        ], $rows);
+    }
+
     private static function uuid(): string
     {
         $data = random_bytes(16);

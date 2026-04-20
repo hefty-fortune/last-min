@@ -12,6 +12,9 @@ use App\Modules\AdminSetup\Api\UserAdminController;
 use App\Modules\AdminSetup\Application\Service\CreateOrganizationService;
 use App\Modules\AdminSetup\Application\Service\CreateProviderService as CreateAdminProviderService;
 use App\Modules\AdminSetup\Application\Service\CreateUserService;
+use App\Modules\AdminSetup\Application\Service\ListOrganizationsService;
+use App\Modules\AdminSetup\Application\Service\ListProvidersService;
+use App\Modules\AdminSetup\Application\Service\ListUsersService;
 use App\Modules\AdminSetup\Infrastructure\Persistence\PdoAdminProviderRepository;
 use App\Modules\AdminSetup\Infrastructure\Persistence\PdoOrganizationRepository;
 use App\Modules\AdminSetup\Infrastructure\Persistence\PdoUserRepository;
@@ -22,6 +25,7 @@ use App\Modules\IdentityAccess\Api\ApiKeyController;
 use App\Modules\IdentityAccess\Api\MeController;
 use App\Modules\IdentityAccess\Application\Service\CreateApiKeyService;
 use App\Modules\IdentityAccess\Application\Service\DeleteApiKeyService;
+use App\Modules\IdentityAccess\Application\Service\ListApiKeysService;
 use App\Modules\IdentityAccess\Application\Query\GetMeQueryService;
 use App\Modules\IdentityAccess\Infrastructure\Persistence\PdoApiKeyRepository;
 use App\Modules\IdentityAccess\Infrastructure\Security\ApiKeyBearerTokenActorResolver;
@@ -53,10 +57,10 @@ $apiKeys = new PdoApiKeyRepository($pdo);
 $routes = new ApiV1Routes(new ActorContextResolver(new ApiKeyBearerTokenActorResolver($apiKeys)));
 $routes->register(
     $router,
-    new OrganizationAdminController(new CreateOrganizationService(new PdoOrganizationRepository($pdo))),
-    new ProviderAdminController(new CreateAdminProviderService(new PdoOrganizationRepository($pdo), new PdoAdminProviderRepository($pdo))),
-    new UserAdminController(new CreateUserService(new PdoAdminProviderRepository($pdo), new PdoUserRepository($pdo))),
-    new ApiKeyController(new CreateApiKeyService($apiKeys), new DeleteApiKeyService($apiKeys)),
+    new OrganizationAdminController(new CreateOrganizationService(new PdoOrganizationRepository($pdo)), new ListOrganizationsService(new PdoOrganizationRepository($pdo))),
+    new ProviderAdminController(new CreateAdminProviderService(new PdoOrganizationRepository($pdo), new PdoAdminProviderRepository($pdo)), new ListProvidersService(new PdoAdminProviderRepository($pdo))),
+    new UserAdminController(new CreateUserService(new PdoAdminProviderRepository($pdo), new PdoUserRepository($pdo)), new ListUsersService(new PdoUserRepository($pdo))),
+    new ApiKeyController(new CreateApiKeyService($apiKeys), new DeleteApiKeyService($apiKeys), new ListApiKeysService($apiKeys)),
     new MeController(new GetMeQueryService()),
     new ProviderController(new CreateProviderService(new PdoProviderRepository($pdo)), $idempotency),
     new OpeningController(new CreateOpeningService(new PdoOpeningRepository($pdo)), $idempotency),

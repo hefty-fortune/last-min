@@ -9,11 +9,14 @@ use App\Common\Http\Request;
 use App\Common\Security\ActorContext;
 use App\Modules\AdminSetup\Application\Dto\CreateProviderRequest;
 use App\Modules\AdminSetup\Application\Service\CreateProviderService;
+use App\Modules\AdminSetup\Application\Service\ListProvidersService;
 
 final class ProviderAdminController
 {
-    public function __construct(private CreateProviderService $service)
-    {
+    public function __construct(
+        private CreateProviderService $service,
+        private ListProvidersService $listService,
+    ) {
     }
 
     public function create(ActorContext $actor, Request $request): ApiResponse
@@ -25,5 +28,15 @@ final class ProviderAdminController
         ));
 
         return ApiResponse::created(['data' => $data, 'meta' => ['request_id' => uniqid('req_', true)]]);
+    }
+
+    public function list(ActorContext $actor, Request $request): ApiResponse
+    {
+        $organizationId = isset($request->attributes['query']['organization_id'])
+            ? (string) $request->attributes['query']['organization_id']
+            : null;
+        $data = $this->listService->list($actor, $organizationId);
+
+        return ApiResponse::ok(['data' => $data, 'meta' => ['request_id' => uniqid('req_', true)]]);
     }
 }

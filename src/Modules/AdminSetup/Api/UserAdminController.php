@@ -9,11 +9,14 @@ use App\Common\Http\Request;
 use App\Common\Security\ActorContext;
 use App\Modules\AdminSetup\Application\Dto\CreateUserRequest;
 use App\Modules\AdminSetup\Application\Service\CreateUserService;
+use App\Modules\AdminSetup\Application\Service\ListUsersService;
 
 final class UserAdminController
 {
-    public function __construct(private CreateUserService $service)
-    {
+    public function __construct(
+        private CreateUserService $service,
+        private ListUsersService $listService,
+    ) {
     }
 
     public function create(ActorContext $actor, Request $request): ApiResponse
@@ -29,5 +32,15 @@ final class UserAdminController
         ));
 
         return ApiResponse::created(['data' => $data, 'meta' => ['request_id' => uniqid('req_', true)]]);
+    }
+
+    public function list(ActorContext $actor, Request $request): ApiResponse
+    {
+        $providerId = isset($request->attributes['query']['provider_id'])
+            ? (string) $request->attributes['query']['provider_id']
+            : null;
+        $data = $this->listService->list($actor, $providerId);
+
+        return ApiResponse::ok(['data' => $data, 'meta' => ['request_id' => uniqid('req_', true)]]);
     }
 }

@@ -10,12 +10,14 @@ use App\Common\Security\ActorContext;
 use App\Modules\IdentityAccess\Application\Dto\CreateApiKeyRequest;
 use App\Modules\IdentityAccess\Application\Service\CreateApiKeyService;
 use App\Modules\IdentityAccess\Application\Service\DeleteApiKeyService;
+use App\Modules\IdentityAccess\Application\Service\ListApiKeysService;
 
 final class ApiKeyController
 {
     public function __construct(
         private CreateApiKeyService $createService,
         private DeleteApiKeyService $deleteService,
+        private ListApiKeysService $listService,
     ) {
     }
 
@@ -29,11 +31,18 @@ final class ApiKeyController
         return ApiResponse::created(['data' => $data, 'meta' => ['request_id' => uniqid('req_', true)]]);
     }
 
-    public function delete(ActorContext $actor, Request $request): ApiResponse
+    public function list(ActorContext $actor, Request $request): ApiResponse
     {
         $clientId = (string) ($request->attributes['query']['client_id'] ?? '');
-        $this->deleteService->delete($actor, $clientId);
+        $data = $this->listService->list($actor, $clientId);
 
-        return ApiResponse::ok(['data' => ['client_id' => $clientId, 'deleted' => true], 'meta' => ['request_id' => uniqid('req_', true)]]);
+        return ApiResponse::ok(['data' => $data, 'meta' => ['request_id' => uniqid('req_', true)]]);
+    }
+
+    public function delete(ActorContext $actor, string $apiKeyId): ApiResponse
+    {
+        $this->deleteService->delete($actor, $apiKeyId);
+
+        return ApiResponse::ok(['data' => ['api_key_id' => $apiKeyId, 'revoked' => true], 'meta' => ['request_id' => uniqid('req_', true)]]);
     }
 }

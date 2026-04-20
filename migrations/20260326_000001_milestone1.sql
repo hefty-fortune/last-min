@@ -165,3 +165,4 @@ CREATE TABLE api_keys (
   revoked_at TEXT NULL
 );
 CREATE INDEX idx_api_keys_client_active ON api_keys(client_id, revoked_at);
+CREATE UNIQUE INDEX idx_api_keys_client_name_active ON api_keys(client_id, key_name) WHERE revoked_at IS NULL;

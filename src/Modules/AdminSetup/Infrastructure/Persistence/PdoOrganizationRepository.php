@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace App\Modules\AdminSetup\Infrastructure\Persistence;
 
+use App\Common\Api\ApiError;
+use App\Common\Api\ApiException;
 use App\Modules\AdminSetup\Application\Port\OrganizationRepository;
 use PDO;
+use PDOException;
 
 final class PdoOrganizationRepository implements OrganizationRepository
 {
@@ -17,17 +20,25 @@ final class PdoOrganizationRepository implements OrganizationRepository
     {
         $id = self::uuid();
         $now = (new \DateTimeImmutable())->format(DATE_ATOM);
-        $stmt = $this->pdo->prepare('INSERT INTO organizations (id, legal_name, display_name, tax_id, contact_email, contact_phone, created_at, updated_at) VALUES (:id, :legal_name, :display_name, :tax_id, :contact_email, :contact_phone, :created_at, :updated_at)');
-        $stmt->execute([
-            'id' => $id,
-            'legal_name' => $organization['legal_name'],
-            'display_name' => $organization['display_name'],
-            'tax_id' => $organization['tax_id'],
-            'contact_email' => $organization['contact_email'],
-            'contact_phone' => $organization['contact_phone'],
-            'created_at' => $now,
-            'updated_at' => $now,
-        ]);
+        try {
+            $stmt = $this->pdo->prepare('INSERT INTO organizations (id, legal_name, display_name, tax_id, contact_email, contact_phone, created_at, updated_at) VALUES (:id, :legal_name, :display_name, :tax_id, :contact_email, :contact_phone, :created_at, :updated_at)');
+            $stmt->execute([
+                'id' => $id,
+                'legal_name' => $organization['legal_name'],
+                'display_name' => $organization['display_name'],
+                'tax_id' => $organization['tax_id'],
+                'contact_email' => $organization['contact_email'],
+                'contact_phone' => $organization['contact_phone'],
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+        } catch (PDOException $e) {
+            if ($this->isUniqueViolation($e, 'organizations.legal_name')) {
+                throw new ApiException(409, new ApiError('CONFLICT_ORGANIZATION_LEGAL_NAME_EXISTS', 'An organization with this legal_name already exists.'));
+            }
+
+            throw $e;
+        }
 
         return [
             'organization_id' => $id,
@@ -45,6 +56,32 @@ final class PdoOrganizationRepository implements OrganizationRepository
         $stmt->execute(['id' => $organizationId]);
 
         return $stmt->fetchColumn() !== false;
+    }
+
+    public function listAll(): array
+    {
+        $stmt = $this->pdo->query('SELECT id, legal_name, display_name, tax_id, contact_email, contact_phone, created_at, updated_at FROM organizations ORDER BY created_at ASC');
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        return array_map(static fn (array $row): array => [
+            'organization_id' => (string) $row['id'],
+            'legal_name' => (string) $row['legal_name'],
+            'display_name' => (string) $row['display_name'],
+            'tax_id' => $row['tax_id'] !== null ? (string) $row['tax_id'] : null,
+            'contact_email' => (string) $row['contact_email'],
+            'contact_phone' => (string) $row['contact_phone'],
+            'created_at' => (string) $row['created_at'],
+            'updated_at' => (string) $row['updated_at'],
+        ], $rows);
+    }
+
+    private function isUniqueViolation(PDOException $e, string $needle): bool
+    {
+        if (($e->errorInfo[0] ?? null) !== '23000') {
+            return false;
+        }
+
+        return str_contains(strtolower($e->getMessage()), strtolower($needle));
     }
 
     private static function uuid(): string
