@@ -6,6 +6,15 @@ use App\Bootstrap\Routing\ApiV1Routes;
 use App\Bootstrap\Routing\Router;
 use App\Common\Http\Request;
 use App\Common\Security\ActorContextResolver;
+use App\Modules\AdminSetup\Api\OrganizationAdminController;
+use App\Modules\AdminSetup\Api\ProviderAdminController;
+use App\Modules\AdminSetup\Api\UserAdminController;
+use App\Modules\AdminSetup\Application\Service\CreateOrganizationService;
+use App\Modules\AdminSetup\Application\Service\CreateProviderService as CreateAdminProviderService;
+use App\Modules\AdminSetup\Application\Service\CreateUserService;
+use App\Modules\AdminSetup\Infrastructure\Persistence\PdoAdminProviderRepository;
+use App\Modules\AdminSetup\Infrastructure\Persistence\PdoOrganizationRepository;
+use App\Modules\AdminSetup\Infrastructure\Persistence\PdoUserRepository;
 use App\Modules\Booking\Api\BookingController;
 use App\Modules\Booking\Application\Service\CreateBookingService;
 use App\Modules\Booking\Infrastructure\Persistence\PdoBookingRepository;
@@ -38,6 +47,9 @@ $idempotency = new IdempotencyExecutor(new PdoIdempotencyStore($pdo));
 $routes = new ApiV1Routes(new ActorContextResolver());
 $routes->register(
     $router,
+    new OrganizationAdminController(new CreateOrganizationService(new PdoOrganizationRepository($pdo))),
+    new ProviderAdminController(new CreateAdminProviderService(new PdoOrganizationRepository($pdo), new PdoAdminProviderRepository($pdo))),
+    new UserAdminController(new CreateUserService(new PdoAdminProviderRepository($pdo), new PdoUserRepository($pdo))),
     new MeController(new GetMeQueryService()),
     new ProviderController(new CreateProviderService(new PdoProviderRepository($pdo)), $idempotency),
     new OpeningController(new CreateOpeningService(new PdoOpeningRepository($pdo)), $idempotency),

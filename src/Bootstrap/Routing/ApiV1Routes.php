@@ -6,6 +6,9 @@ namespace App\Bootstrap\Routing;
 
 use App\Common\Http\Request;
 use App\Common\Security\ActorContextResolver;
+use App\Modules\AdminSetup\Api\OrganizationAdminController;
+use App\Modules\AdminSetup\Api\ProviderAdminController;
+use App\Modules\AdminSetup\Api\UserAdminController;
 use App\Modules\Booking\Api\BookingController;
 use App\Modules\IdentityAccess\Api\MeController;
 use App\Modules\Openings\Api\OpeningController;
@@ -21,6 +24,9 @@ final class ApiV1Routes
 
     public function register(
         Router $router,
+        OrganizationAdminController $adminOrganizations,
+        ProviderAdminController $adminProviders,
+        UserAdminController $adminUsers,
         MeController $me,
         ProviderController $providers,
         OpeningController $openings,
@@ -28,6 +34,21 @@ final class ApiV1Routes
         PaymentController $payments,
         StripeWebhookController $stripeWebhook,
     ): void {
+        $router->add('POST', '/api/v1/admin/organizations', function (Request $request) use ($adminOrganizations) {
+            $actor = $this->resolver->resolve($request->headers);
+            return $adminOrganizations->create($actor, $request);
+        });
+
+        $router->add('POST', '/api/v1/admin/providers', function (Request $request) use ($adminProviders) {
+            $actor = $this->resolver->resolve($request->headers);
+            return $adminProviders->create($actor, $request);
+        });
+
+        $router->add('POST', '/api/v1/admin/users', function (Request $request) use ($adminUsers) {
+            $actor = $this->resolver->resolve($request->headers);
+            return $adminUsers->create($actor, $request);
+        });
+
         $router->add('GET', '/api/v1/me', function (Request $request) use ($me) {
             $actor = $this->resolver->resolve($request->headers);
             return $me->get($actor);
