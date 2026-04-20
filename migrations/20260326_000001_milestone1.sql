@@ -158,6 +158,9 @@ CREATE TABLE stripe_webhook_events (
 CREATE TABLE api_keys (
   id TEXT PRIMARY KEY,
   client_id VARCHAR(64) NOT NULL,
+  actor_type VARCHAR(32) NOT NULL DEFAULT 'client',
+  actor_id VARCHAR(64) NULL,
+  actor_roles TEXT NULL,
   key_name VARCHAR(128) NOT NULL,
   key_hash CHAR(64) NOT NULL UNIQUE,
   key_prefix VARCHAR(16) NOT NULL,
@@ -165,4 +168,5 @@ CREATE TABLE api_keys (
   revoked_at TEXT NULL
 );
 CREATE INDEX idx_api_keys_client_active ON api_keys(client_id, revoked_at);
+CREATE INDEX idx_api_keys_actor_active ON api_keys(actor_type, actor_id, revoked_at);
 CREATE UNIQUE INDEX idx_api_keys_client_name_active ON api_keys(client_id, key_name) WHERE revoked_at IS NULL;
