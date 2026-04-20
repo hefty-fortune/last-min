@@ -10,6 +10,7 @@ use App\Modules\AdminSetup\Api\OrganizationAdminController;
 use App\Modules\AdminSetup\Api\ProviderAdminController;
 use App\Modules\AdminSetup\Api\UserAdminController;
 use App\Modules\Booking\Api\BookingController;
+use App\Modules\IdentityAccess\Api\ApiKeyController;
 use App\Modules\IdentityAccess\Api\MeController;
 use App\Modules\Openings\Api\OpeningController;
 use App\Modules\Payments\Api\PaymentController;
@@ -27,6 +28,7 @@ final class ApiV1Routes
         OrganizationAdminController $adminOrganizations,
         ProviderAdminController $adminProviders,
         UserAdminController $adminUsers,
+        ApiKeyController $apiKeys,
         MeController $me,
         ProviderController $providers,
         OpeningController $openings,
@@ -47,6 +49,16 @@ final class ApiV1Routes
         $router->add('POST', '/api/v1/admin/users', function (Request $request) use ($adminUsers) {
             $actor = $this->resolver->resolve($request->headers);
             return $adminUsers->create($actor, $request);
+        });
+
+        $router->add('POST', '/api/v1/api-key', function (Request $request) use ($apiKeys) {
+            $actor = $this->resolver->resolve($request->headers);
+            return $apiKeys->create($actor, $request);
+        });
+
+        $router->add('DELETE', '/api/v1/api-key', function (Request $request) use ($apiKeys) {
+            $actor = $this->resolver->resolve($request->headers);
+            return $apiKeys->delete($actor, $request);
         });
 
         $router->add('GET', '/api/v1/me', function (Request $request) use ($me) {

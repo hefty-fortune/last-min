@@ -20,8 +20,13 @@ use App\Modules\AdminSetup\Infrastructure\Persistence\PdoUserRepository;
 use App\Modules\Booking\Api\BookingController;
 use App\Modules\Booking\Application\Service\CreateBookingService;
 use App\Modules\Booking\Infrastructure\Persistence\PdoBookingRepository;
+use App\Modules\IdentityAccess\Api\ApiKeyController;
 use App\Modules\IdentityAccess\Api\MeController;
 use App\Modules\IdentityAccess\Application\Query\GetMeQueryService;
+use App\Modules\IdentityAccess\Application\Service\CreateApiKeyService;
+use App\Modules\IdentityAccess\Application\Service\DeleteApiKeyService;
+use App\Modules\IdentityAccess\Infrastructure\Persistence\PdoApiKeyRepository;
+use App\Modules\IdentityAccess\Infrastructure\Security\ApiKeyBearerTokenActorResolver;
 use App\Modules\Openings\Api\OpeningController;
 use App\Modules\Openings\Application\Service\CreateOpeningService;
 use App\Modules\Openings\Infrastructure\Persistence\PdoOpeningRepository;
@@ -58,13 +63,15 @@ final class MilestoneOneTest extends TestCase
         $this->seedFixtureData();
 
         $idempotency = new IdempotencyExecutor(new PdoIdempotencyStore($this->pdo));
+        $apiKeys = new PdoApiKeyRepository($this->pdo);
         $this->router = new Router();
 
-        (new ApiV1Routes(new ActorContextResolver()))->register(
+        (new ApiV1Routes(new ActorContextResolver(new ApiKeyBearerTokenActorResolver($apiKeys))))->register(
             $this->router,
             new OrganizationAdminController(new CreateOrganizationService(new PdoOrganizationRepository($this->pdo))),
             new ProviderAdminController(new CreateAdminProviderService(new PdoOrganizationRepository($this->pdo), new PdoAdminProviderRepository($this->pdo))),
             new UserAdminController(new CreateUserService(new PdoAdminProviderRepository($this->pdo), new PdoUserRepository($this->pdo))),
+            new ApiKeyController(new CreateApiKeyService($apiKeys), new DeleteApiKeyService($apiKeys)),
             new MeController(new GetMeQueryService()),
             new ProviderController(new CreateProviderService(new PdoProviderRepository($this->pdo)), $idempotency),
             new OpeningController(new CreateOpeningService(new PdoOpeningRepository($this->pdo)), $idempotency),
@@ -274,6 +281,58 @@ final class MilestoneOneTest extends TestCase
 
         self::assertSame(422, $response->statusCode);
         self::assertSame('VALIDATION_PROVIDER_NOT_FOUND', $response->body['error']['code']);
+    }
+
+    public function testAdminCanCreateApiKeyAndUseItAsBearerToken(): void
+    {
+        $clientId = '8f726eaf-bc9a-4010-a8b8-4ee3f39b7c10';
+        $create = $this->router->dispatch(new Request('POST', '/api/v1/api-key', $this->actorHeaders(['admin']), [
+            'client_id' => $clientId,
+            'name' => 'Client mobile app',
+        ]));
+
+        self::assertSame(201, $create->statusCode);
+        self::assertSame($clientId, $create->body['data']['client_id']);
+        self::assertArrayHasKey('api_key', $create->body['data']);
+        self::assertArrayHasKey('api_key_id', $create->body['data']);
+
+        $me = $this->router->dispatch(new Request('GET', '/api/v1/me', [
+            'Authorization' => 'Bearer ' . $create->body['data']['api_key'],
+        ], []));
+
+        self::assertSame(200, $me->statusCode);
+        self::assertSame($clientId, $me->body['data']['actor_id']);
+        self::assertSame(['client'], $me->body['data']['roles']);
+    }
+
+    public function testCreateApiKeyFailsValidationWhenClientIdIsInvalid(): void
+    {
+        $response = $this->router->dispatch(new Request('POST', '/api/v1/api-key', $this->actorHeaders(['admin']), [
+            'client_id' => 'not-a-uuid',
+            'name' => 'Bad key',
+        ]));
+
+        self::assertSame(422, $response->statusCode);
+        self::assertSame('VALIDATION_CLIENT_ID_INVALID', $response->body['error']['code']);
+    }
+
+    public function testAdminCanDeleteApiKeyByClientIdQueryParam(): void
+    {
+        $clientId = '6e869011-faa2-4df8-89f5-0a7f131fcf01';
+        $create = $this->router->dispatch(new Request('POST', '/api/v1/api-key', $this->actorHeaders(['admin']), [
+            'client_id' => $clientId,
+            'name' => 'Temporary key',
+        ]));
+        $plainKey = $create->body['data']['api_key'];
+
+        $delete = $this->router->dispatch(new Request('DELETE', '/api/v1/api-key?client_id=' . $clientId, $this->actorHeaders(['admin']), []));
+        self::assertSame(200, $delete->statusCode);
+        self::assertTrue($delete->body['data']['deleted']);
+
+        $meAfterDelete = $this->router->dispatch(new Request('GET', '/api/v1/me', [
+            'Authorization' => 'Bearer ' . $plainKey,
+        ], []));
+        self::assertSame(401, $meAfterDelete->statusCode);
     }
 
     private function actorHeaders(array $roles): array
