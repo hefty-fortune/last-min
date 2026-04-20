@@ -74,6 +74,33 @@ final class PdoUserRepository implements UserRepository
         ];
     }
 
+    public function getById(string $userId): ?array
+    {
+        $stmt = $this->pdo->prepare('SELECT id, provider_id, first_name, last_name, email, phone, status, created_at, updated_at FROM users WHERE id = :id LIMIT 1');
+        $stmt->execute(['id' => $userId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($row === false) {
+            return null;
+        }
+
+        $roleStmt = $this->pdo->prepare('SELECT role_code FROM user_roles WHERE user_id = :user_id ORDER BY role_code ASC');
+        $roleStmt->execute(['user_id' => $userId]);
+        $roles = array_map(static fn (array $role): string => (string) $role['role_code'], $roleStmt->fetchAll(PDO::FETCH_ASSOC));
+
+        return [
+            'user_id' => (string) $row['id'],
+            'provider_id' => (string) $row['provider_id'],
+            'first_name' => (string) $row['first_name'],
+            'last_name' => (string) $row['last_name'],
+            'email' => (string) $row['email'],
+            'phone' => (string) $row['phone'],
+            'status' => (string) $row['status'],
+            'roles' => $roles,
+            'created_at' => (string) $row['created_at'],
+            'updated_at' => (string) $row['updated_at'],
+        ];
+    }
+
     public function listByProviderId(?string $providerId): array
     {
         if ($providerId !== null && trim($providerId) !== '') {

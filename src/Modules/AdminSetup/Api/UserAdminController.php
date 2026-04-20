@@ -9,12 +9,14 @@ use App\Common\Http\Request;
 use App\Common\Security\ActorContext;
 use App\Modules\AdminSetup\Application\Dto\CreateUserRequest;
 use App\Modules\AdminSetup\Application\Service\CreateUserService;
+use App\Modules\AdminSetup\Application\Service\GetUserService;
 use App\Modules\AdminSetup\Application\Service\ListUsersService;
 
 final class UserAdminController
 {
     public function __construct(
         private CreateUserService $service,
+        private GetUserService $getService,
         private ListUsersService $listService,
     ) {
     }
@@ -40,6 +42,13 @@ final class UserAdminController
             ? (string) $request->attributes['query']['provider_id']
             : null;
         $data = $this->listService->list($actor, $providerId);
+
+        return ApiResponse::ok(['data' => $data, 'meta' => ['request_id' => uniqid('req_', true)]]);
+    }
+
+    public function get(ActorContext $actor, string $userId): ApiResponse
+    {
+        $data = $this->getService->getById($actor, $userId);
 
         return ApiResponse::ok(['data' => $data, 'meta' => ['request_id' => uniqid('req_', true)]]);
     }

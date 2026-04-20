@@ -58,6 +58,27 @@ final class PdoOrganizationRepository implements OrganizationRepository
         return $stmt->fetchColumn() !== false;
     }
 
+    public function getById(string $organizationId): ?array
+    {
+        $stmt = $this->pdo->prepare('SELECT id, legal_name, display_name, tax_id, contact_email, contact_phone, created_at, updated_at FROM organizations WHERE id = :id LIMIT 1');
+        $stmt->execute(['id' => $organizationId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($row === false) {
+            return null;
+        }
+
+        return [
+            'organization_id' => (string) $row['id'],
+            'legal_name' => (string) $row['legal_name'],
+            'display_name' => (string) $row['display_name'],
+            'tax_id' => $row['tax_id'] !== null ? (string) $row['tax_id'] : null,
+            'contact_email' => (string) $row['contact_email'],
+            'contact_phone' => (string) $row['contact_phone'],
+            'created_at' => (string) $row['created_at'],
+            'updated_at' => (string) $row['updated_at'],
+        ];
+    }
+
     public function listAll(): array
     {
         $stmt = $this->pdo->query('SELECT id, legal_name, display_name, tax_id, contact_email, contact_phone, created_at, updated_at FROM organizations ORDER BY created_at ASC');
