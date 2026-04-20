@@ -16,6 +16,7 @@ Backend documentation extracted and normalized from the uploaded backend section
 - [10 Operational and admin concerns](10-operational-and-admin-concerns.md)
 - [11 Delivery plan](11-delivery-plan.md)
 - [12 Open questions](12-open-questions.md)
+- [Local development (Docker)](local-development.md)
 
 ## Notes
 
