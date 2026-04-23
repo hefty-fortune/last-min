@@ -54,7 +54,7 @@ final class PdoUserRepository implements UserRepository
                 $this->pdo->rollBack();
             }
 
-            if ($e instanceof PDOException && $this->isUniqueViolation($e, 'users.email')) {
+            if ($e instanceof PDOException && $this->isUniqueViolation($e, ['users.email', 'idx_users_email', 'key (email)'])) {
                 throw new ApiException(409, new ApiError('CONFLICT_USER_EMAIL_EXISTS', 'A user with this email already exists.'));
             }
 
@@ -144,13 +144,29 @@ final class PdoUserRepository implements UserRepository
         }, $users);
     }
 
-    private function isUniqueViolation(PDOException $e, string $needle): bool
+    /** @param list<string> $needles */
+    private function isUniqueViolation(PDOException $e, array $needles): bool
     {
-        if (($e->errorInfo[0] ?? null) !== '23000') {
+        $sqlState = (string) ($e->errorInfo[0] ?? '');
+        if ($sqlState !== '23000' && $sqlState !== '23505') {
             return false;
         }
 
-        return str_contains(strtolower($e->getMessage()), strtolower($needle));
+        $haystacks = [strtolower($e->getMessage())];
+        if (isset($e->errorInfo[2]) && is_string($e->errorInfo[2])) {
+            $haystacks[] = strtolower($e->errorInfo[2]);
+        }
+
+        foreach ($needles as $needle) {
+            $normalizedNeedle = strtolower($needle);
+            foreach ($haystacks as $haystack) {
+                if (str_contains($haystack, $normalizedNeedle)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private static function uuid(): string

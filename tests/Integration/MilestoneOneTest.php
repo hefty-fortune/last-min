@@ -183,6 +183,24 @@ final class MilestoneOneTest extends TestCase
         self::assertSame('VALIDATION_REQUIRED_FIELD_MISSING', $response->body['error']['code']);
     }
 
+    public function testCreateOrganizationReturnsConflictWhenLegalNameAlreadyExists(): void
+    {
+        $payload = [
+            'legal_name' => 'Dup Org d.o.o.',
+            'display_name' => 'Dup Org',
+            'contact_email' => 'dup-org@example.com',
+            'contact_phone' => '+38591119999',
+        ];
+
+        $first = $this->router->dispatch(new Request('POST', '/api/v1/admin/organizations', $this->actorHeaders(['admin']), $payload));
+        self::assertSame(201, $first->statusCode);
+
+        $second = $this->router->dispatch(new Request('POST', '/api/v1/admin/organizations', $this->actorHeaders(['admin']), $payload));
+        self::assertSame(409, $second->statusCode);
+        self::assertSame('CONFLICT_ORGANIZATION_LEGAL_NAME_EXISTS', $second->body['error']['code']);
+        self::assertArrayNotHasKey('data', $second->body);
+    }
+
     public function testAdminCanCreateProviderForOrganization(): void
     {
         $organization = $this->router->dispatch(new Request('POST', '/api/v1/admin/organizations', $this->actorHeaders(['admin']), [

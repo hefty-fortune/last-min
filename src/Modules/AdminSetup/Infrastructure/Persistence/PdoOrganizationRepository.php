@@ -33,7 +33,7 @@ final class PdoOrganizationRepository implements OrganizationRepository
                 'updated_at' => $now,
             ]);
         } catch (PDOException $e) {
-            if ($this->isUniqueViolation($e, 'organizations.legal_name')) {
+            if ($this->isUniqueViolation($e, ['organizations.legal_name', 'idx_organizations_legal_name', 'key (legal_name)'])) {
                 throw new ApiException(409, new ApiError('CONFLICT_ORGANIZATION_LEGAL_NAME_EXISTS', 'An organization with this legal_name already exists.'));
             }
 
@@ -96,13 +96,29 @@ final class PdoOrganizationRepository implements OrganizationRepository
         ], $rows);
     }
 
-    private function isUniqueViolation(PDOException $e, string $needle): bool
+    /** @param list<string> $needles */
+    private function isUniqueViolation(PDOException $e, array $needles): bool
     {
-        if (($e->errorInfo[0] ?? null) !== '23000') {
+        $sqlState = (string) ($e->errorInfo[0] ?? '');
+        if ($sqlState !== '23000' && $sqlState !== '23505') {
             return false;
         }
 
-        return str_contains(strtolower($e->getMessage()), strtolower($needle));
+        $haystacks = [strtolower($e->getMessage())];
+        if (isset($e->errorInfo[2]) && is_string($e->errorInfo[2])) {
+            $haystacks[] = strtolower($e->errorInfo[2]);
+        }
+
+        foreach ($needles as $needle) {
+            $normalizedNeedle = strtolower($needle);
+            foreach ($haystacks as $haystack) {
+                if (str_contains($haystack, $normalizedNeedle)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private static function uuid(): string
