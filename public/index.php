@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use App\Bootstrap\AppKernel;
 use App\Bootstrap\DatabaseConnection;
+use App\Common\Api\ApiError;
+use App\Common\Api\ApiException;
 use App\Common\Http\Request;
 
 require __DIR__ . '/../vendor/autoload.php';
@@ -24,7 +26,16 @@ $request = new Request(
     rawBody: $rawBody !== false ? $rawBody : '',
 );
 
-$response = AppKernel::buildRouter($pdo, $stripeWebhookSecret)->dispatch($request);
+try {
+    $response = AppKernel::buildRouter($pdo, $stripeWebhookSecret)->dispatch($request);
+} catch (ApiException $e) {
+    $response = new \App\Common\Api\ApiResponse($e->statusCode, $e->error->toArray());
+} catch (\Throwable) {
+    $response = new \App\Common\Api\ApiResponse(
+        500,
+        (new ApiError('INTERNAL_SERVER_ERROR', 'An unexpected server error occurred.'))->toArray(),
+    );
+}
 
 http_response_code($response->statusCode);
 header('Content-Type: application/json');
