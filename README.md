@@ -48,10 +48,17 @@ Use this README as the **canonical starting point** for local setup and smoke te
 ## Prerequisites
 
 Install these before first run:
-- Docker + Docker Compose plugin (`docker compose` command)
+- Docker Desktop (with Docker Compose plugin, `docker compose` command)
+- Git
 - `curl`
 - `jq` (used in examples for extracting IDs)
-- PHP 8.1+ and Composer (for local dependency install)
+
+You **do not** need host-side:
+- XAMPP
+- Apache
+- MySQL
+- PHP
+- Composer
 
 ---
 
@@ -63,33 +70,34 @@ From the repo root:
 cd /path/to/last-min
 ```
 
-### 1) Install PHP dependencies
-
-```bash
-composer install
-```
-
-### 2) Create local env file
+### 1) Create local env file
 
 ```bash
 cp .env.example .env
 ```
 
-### 3) Start Docker services (backend + PostgreSQL)
+### 2) Start Docker services (backend + PostgreSQL)
 
 ```bash
 docker compose up --build -d
 ```
 
-The backend container starts with:
-- migration run (`php bin/migrate.php`)
-- PHP built-in web server on port `8080`
-
-### 4) Run migration command manually (safe to re-run)
+### 3) Check container status
 
 ```bash
-docker compose run --rm backend php bin/migrate.php
+docker compose ps
 ```
+
+### 4) Watch backend startup logs
+
+```bash
+docker compose logs -f backend
+```
+
+Backend startup handles:
+- Composer dependency install (when needed) inside the backend container
+- migrations
+- PHP built-in web server startup on port `8080`
 
 ### 5) Base URLs
 
@@ -100,6 +108,34 @@ Quick unauthenticated check (expected `401`):
 
 ```bash
 curl -i http://localhost:8080/api/v1/me
+```
+
+---
+
+## Daily commands
+
+Start services:
+
+```bash
+docker compose up -d
+```
+
+Stop services:
+
+```bash
+docker compose down
+```
+
+Follow backend logs:
+
+```bash
+docker compose logs -f backend
+```
+
+Run migrations manually (safe to re-run):
+
+```bash
+docker compose exec backend php bin/migrate.php
 ```
 
 ---
@@ -287,10 +323,19 @@ curl -sS -X DELETE \
 
 ### Backend cannot connect to DB
 - Ensure containers are up: `docker compose ps`.
-- Re-run migrations: `docker compose run --rm backend php bin/migrate.php`.
+- Check backend logs: `docker compose logs -f backend`.
+- Confirm postgres container is healthy and reachable on Docker network.
+- Re-run migrations inside container: `docker compose exec backend php bin/migrate.php`.
 
 ### Dependency issues (`vendor/autoload.php` missing)
-- Run `composer install` in repo root.
+- Rebuild and restart containers so dependency install runs again in-container:
+  - `docker compose down`
+  - `docker compose up --build -d`
+- Check startup logs for Composer install output: `docker compose logs -f backend`.
+
+### App boots but specific route crashes
+- If Docker and DB are healthy but one endpoint fails, this is usually an app-code/runtime issue.
+- Capture the failing request and backend stack trace from `docker compose logs -f backend` and debug that route/module.
 
 ---
 
@@ -317,10 +362,8 @@ docker compose down -v --rmi local
 Then start fresh:
 
 ```bash
-composer install
 cp .env.example .env
 docker compose up --build -d
-docker compose run --rm backend php bin/migrate.php
 ```
 
 ---
@@ -331,4 +374,3 @@ docker compose run --rm backend php bin/migrate.php
 - Admin bearer bootstrap notes: `docs/11-technical-documentation/local-dev-admin-auth.md`
 - Backend architecture index: `docs/13-backend/README.md`
 - Technical docs index: `docs/11-technical-documentation/README.md`
-
