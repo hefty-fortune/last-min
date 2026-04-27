@@ -7,6 +7,8 @@ namespace App\Bootstrap;
 use App\Bootstrap\Routing\ApiV1Routes;
 use App\Bootstrap\Routing\Router;
 use App\Common\Security\ActorContextResolver;
+use App\Common\Security\ApiKeyGateMiddleware;
+use App\Common\Security\CompositeBearerTokenActorResolver;
 use App\Modules\AdminSetup\Api\OrganizationAdminController;
 use App\Modules\AdminSetup\Api\ProviderAdminController;
 use App\Modules\AdminSetup\Api\UserAdminController;
@@ -26,13 +28,18 @@ use App\Modules\Booking\Api\BookingController;
 use App\Modules\Booking\Application\Service\CreateBookingService;
 use App\Modules\Booking\Infrastructure\Persistence\PdoBookingRepository;
 use App\Modules\IdentityAccess\Api\ApiKeyController;
+use App\Modules\IdentityAccess\Api\AuthController;
 use App\Modules\IdentityAccess\Api\MeController;
 use App\Modules\IdentityAccess\Application\Query\GetMeQueryService;
 use App\Modules\IdentityAccess\Application\Service\CreateApiKeyService;
 use App\Modules\IdentityAccess\Application\Service\DeleteApiKeyService;
 use App\Modules\IdentityAccess\Application\Service\ListApiKeysService;
+use App\Modules\IdentityAccess\Application\Service\LoginService;
 use App\Modules\IdentityAccess\Infrastructure\Persistence\PdoApiKeyRepository;
+use App\Modules\IdentityAccess\Infrastructure\Persistence\PdoAuthSessionRepository;
+use App\Modules\IdentityAccess\Infrastructure\Persistence\PdoUserAuthRepository;
 use App\Modules\IdentityAccess\Infrastructure\Security\ApiKeyBearerTokenActorResolver;
+use App\Modules\IdentityAccess\Infrastructure\Security\SessionBearerTokenActorResolver;
 use App\Modules\Openings\Api\OpeningController;
 use App\Modules\Openings\Application\Service\CreateOpeningService;
 use App\Modules\Openings\Infrastructure\Persistence\PdoOpeningRepository;
@@ -59,8 +66,16 @@ final class AppKernel
         $router = new Router();
         $idempotency = new IdempotencyExecutor(new PdoIdempotencyStore($pdo));
         $apiKeys = new PdoApiKeyRepository($pdo);
+        $sessions = new PdoAuthSessionRepository($pdo);
+        $userAuth = new PdoUserAuthRepository($pdo);
 
-        (new ApiV1Routes(new ActorContextResolver(new ApiKeyBearerTokenActorResolver($apiKeys))))->register(
+        $bearerResolver = new CompositeBearerTokenActorResolver([
+            new SessionBearerTokenActorResolver($sessions, $pdo),
+            new ApiKeyBearerTokenActorResolver($apiKeys),
+        ]);
+        $apiKeyGate = new ApiKeyGateMiddleware($apiKeys);
+
+        (new ApiV1Routes(new ActorContextResolver($bearerResolver, $apiKeyGate), $apiKeyGate))->register(
             $router,
             new OrganizationAdminController(
                 new CreateOrganizationService(new PdoOrganizationRepository($pdo)),
@@ -78,6 +93,7 @@ final class AppKernel
                 new ListUsersService(new PdoUserRepository($pdo))
             ),
             new ApiKeyController(new CreateApiKeyService($apiKeys), new DeleteApiKeyService($apiKeys), new ListApiKeysService($apiKeys)),
+            new AuthController(new LoginService($userAuth, $sessions)),
             new MeController(new GetMeQueryService()),
             new ProviderController(new CreateProviderService(new PdoProviderRepository($pdo)), $idempotency),
             new OpeningController(new CreateOpeningService(new PdoOpeningRepository($pdo)), $idempotency),

@@ -6,11 +6,13 @@ namespace App\Bootstrap\Routing;
 
 use App\Common\Http\Request;
 use App\Common\Security\ActorContextResolver;
+use App\Common\Security\ApiKeyGateMiddleware;
 use App\Modules\AdminSetup\Api\OrganizationAdminController;
 use App\Modules\AdminSetup\Api\ProviderAdminController;
 use App\Modules\AdminSetup\Api\UserAdminController;
 use App\Modules\Booking\Api\BookingController;
 use App\Modules\IdentityAccess\Api\ApiKeyController;
+use App\Modules\IdentityAccess\Api\AuthController;
 use App\Modules\IdentityAccess\Api\MeController;
 use App\Modules\Openings\Api\OpeningController;
 use App\Modules\Payments\Api\PaymentController;
@@ -19,8 +21,10 @@ use App\Platform\Webhooks\Stripe\StripeWebhookController;
 
 final class ApiV1Routes
 {
-    public function __construct(private ActorContextResolver $resolver)
-    {
+    public function __construct(
+        private ActorContextResolver $resolver,
+        private ?ApiKeyGateMiddleware $apiKeyGate = null,
+    ) {
     }
 
     public function register(
@@ -29,6 +33,7 @@ final class ApiV1Routes
         ProviderAdminController $adminProviders,
         UserAdminController $adminUsers,
         ApiKeyController $apiKeys,
+        AuthController $auth,
         MeController $me,
         ProviderController $providers,
         OpeningController $openings,
@@ -36,6 +41,15 @@ final class ApiV1Routes
         PaymentController $payments,
         StripeWebhookController $stripeWebhook,
     ): void {
+        $router->add('POST', '/api/v1/auth/login', function (Request $request) use ($auth) {
+            $this->apiKeyGate?->validate($request->headers);
+            return $auth->login($request);
+        });
+        $router->add('POST', '/api/v1/auth/logout', function (Request $request) use ($auth) {
+            $this->apiKeyGate?->validate($request->headers);
+            return $auth->logout($request);
+        });
+
         $router->add('POST', '/api/v1/admin/organizations', function (Request $request) use ($adminOrganizations) {
             $actor = $this->resolver->resolve($request->headers);
             return $adminOrganizations->create($actor, $request);
