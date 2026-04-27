@@ -27,12 +27,16 @@ use App\Modules\Booking\Api\BookingController;
 use App\Modules\Booking\Application\Service\CreateBookingService;
 use App\Modules\Booking\Infrastructure\Persistence\PdoBookingRepository;
 use App\Modules\IdentityAccess\Api\ApiKeyController;
+use App\Modules\IdentityAccess\Api\AuthController;
 use App\Modules\IdentityAccess\Api\MeController;
 use App\Modules\IdentityAccess\Application\Query\GetMeQueryService;
 use App\Modules\IdentityAccess\Application\Service\CreateApiKeyService;
 use App\Modules\IdentityAccess\Application\Service\DeleteApiKeyService;
 use App\Modules\IdentityAccess\Application\Service\ListApiKeysService;
+use App\Modules\IdentityAccess\Application\Service\LoginService;
 use App\Modules\IdentityAccess\Infrastructure\Persistence\PdoApiKeyRepository;
+use App\Modules\IdentityAccess\Infrastructure\Persistence\PdoAuthSessionRepository;
+use App\Modules\IdentityAccess\Infrastructure\Persistence\PdoUserAuthRepository;
 use App\Modules\IdentityAccess\Infrastructure\Security\ApiKeyBearerTokenActorResolver;
 use App\Modules\Openings\Api\OpeningController;
 use App\Modules\Openings\Application\Service\CreateOpeningService;
@@ -64,9 +68,12 @@ final class MilestoneOneTest extends TestCase
     {
         $this->pdo = new PDO('sqlite::memory:');
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $schema = file_get_contents(__DIR__ . '/../../migrations/20260326_000001_milestone1.sql');
-        self::assertNotFalse($schema);
-        $this->pdo->exec($schema);
+        $migrations = glob(__DIR__ . '/../../migrations/*.sql');
+        foreach ($migrations as $migration) {
+            $sql = file_get_contents($migration);
+            self::assertNotFalse($sql);
+            $this->pdo->exec($sql);
+        }
 
         $this->seedFixtureData();
 
@@ -93,6 +100,7 @@ final class MilestoneOneTest extends TestCase
                 new ListUsersService(new PdoUserRepository($this->pdo))
             ),
             new ApiKeyController(new CreateApiKeyService($apiKeys), new DeleteApiKeyService($apiKeys), new ListApiKeysService($apiKeys)),
+            new AuthController(new LoginService(new PdoUserAuthRepository($this->pdo), new PdoAuthSessionRepository($this->pdo))),
             new MeController(new GetMeQueryService()),
             new ProviderController(new CreateProviderService(new PdoProviderRepository($this->pdo)), $idempotency),
             new OpeningController(new CreateOpeningService(new PdoOpeningRepository($this->pdo)), $idempotency),
