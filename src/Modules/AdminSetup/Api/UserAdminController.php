@@ -24,6 +24,9 @@ final class UserAdminController
     public function create(ActorContext $actor, Request $request): ApiResponse
     {
         $roles = $request->body['roles'] ?? [];
+        $password = isset($request->body['password']) && is_string($request->body['password']) && trim($request->body['password']) !== ''
+            ? (string) $request->body['password']
+            : null;
         $data = $this->service->create($actor, new CreateUserRequest(
             firstName: (string) ($request->body['first_name'] ?? ''),
             lastName: (string) ($request->body['last_name'] ?? ''),
@@ -31,6 +34,7 @@ final class UserAdminController
             phone: (string) ($request->body['phone'] ?? ''),
             roles: is_array($roles) ? array_values($roles) : [],
             providerId: (string) ($request->body['provider_id'] ?? ''),
+            password: $password,
         ));
 
         return ApiResponse::created(['data' => $data, 'meta' => ['request_id' => uniqid('req_', true)]]);

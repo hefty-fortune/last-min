@@ -32,7 +32,7 @@ final class PdoUserRepository implements UserRepository
                 'last_name' => $user['last_name'],
                 'email' => $user['email'],
                 'phone' => $user['phone'],
-                'password_hash' => null,
+                'password_hash' => $user['password_hash'] ?? null,
                 'status' => 'active',
                 'created_at' => $now,
                 'updated_at' => $now,
