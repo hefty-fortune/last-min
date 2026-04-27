@@ -1,0 +1,10 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Dialog > renders closed dialog 1`] = `<div />`;
+
+exports[`Dialog > renders open dialog 1`] = `
+<div
+  aria-hidden="true"
+  data-base-ui-inert=""
+/>
+`;
