@@ -5,8 +5,11 @@ import { AuthProvider } from '@/lib/auth';
 import AppLayout from '@/layouts/AppLayout';
 import LoginPage from '@/pages/LoginPage';
 import OrganizationsPage from '@/pages/OrganizationsPage';
+import OrganizationDetailPage from '@/pages/OrganizationDetailPage';
 import ProvidersPage from '@/pages/ProvidersPage';
+import ProviderDetailPage from '@/pages/ProviderDetailPage';
 import UsersPage from '@/pages/UsersPage';
+import UserDetailPage from '@/pages/UserDetailPage';
 import ApiKeysPage from '@/pages/ApiKeysPage';
 
 const queryClient = new QueryClient({
@@ -26,8 +29,11 @@ export default function App() {
               <Route element={<AppLayout />}>
                 <Route index element={<Navigate to="/organizations" replace />} />
                 <Route path="/organizations" element={<OrganizationsPage />} />
+                <Route path="/organizations/:id" element={<OrganizationDetailPage />} />
                 <Route path="/providers" element={<ProvidersPage />} />
+                <Route path="/providers/:id" element={<ProviderDetailPage />} />
                 <Route path="/users" element={<UsersPage />} />
+                <Route path="/users/:id" element={<UserDetailPage />} />
                 <Route path="/api-keys" element={<ApiKeysPage />} />
               </Route>
             </Routes>

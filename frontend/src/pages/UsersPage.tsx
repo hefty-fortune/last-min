@@ -1,10 +1,10 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   listUsers,
   listProviders,
   createUser,
-  type User,
   type CreateUserPayload,
 } from '@/lib/api';
 import {
@@ -30,12 +30,11 @@ import {
 } from '@/components/common';
 import { toast } from 'sonner';
 
-const ROLES = ['admin', 'super-admin', 'provider', 'client'];
+const ROLES = ['admin', 'org_admin', 'provider_manager', 'provider_staff', 'client'];
 
 export default function UsersPage() {
   const [open, setOpen] = useState(false);
   const [filterProvider, setFilterProvider] = useState('');
-  const [detail, setDetail] = useState<User | null>(null);
   const [form, setForm] = useState<CreateUserPayload>({
     first_name: '',
     last_name: '',
@@ -187,29 +186,6 @@ export default function UsersPage() {
         </select>
       </div>
 
-      <Dialog open={!!detail} onOpenChange={() => setDetail(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>User Details</DialogTitle>
-          </DialogHeader>
-          {detail && (
-            <dl className="space-y-3 text-sm">
-              <div><dt className="text-muted-foreground">User ID</dt><dd className="font-mono">{detail.user_id}</dd></div>
-              <div><dt className="text-muted-foreground">Name</dt><dd>{detail.first_name} {detail.last_name}</dd></div>
-              <div><dt className="text-muted-foreground">Email</dt><dd>{detail.email}</dd></div>
-              <div><dt className="text-muted-foreground">Phone</dt><dd>{detail.phone}</dd></div>
-              <div><dt className="text-muted-foreground">Provider ID</dt><dd className="font-mono">{detail.provider_id}</dd></div>
-              <div>
-                <dt className="text-muted-foreground">Roles</dt>
-                <dd className="flex gap-1 mt-1">
-                  {detail.roles.map((r) => <Badge key={r} variant="secondary">{r}</Badge>)}
-                </dd>
-              </div>
-            </dl>
-          )}
-        </DialogContent>
-      </Dialog>
-
       <Card>
         <CardHeader>
           <CardTitle>All Users</CardTitle>
@@ -242,9 +218,9 @@ export default function UsersPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Button size="sm" variant="ghost" onClick={() => setDetail(u)}>
-                        View
-                      </Button>
+                      <Link to={`/users/${u.user_id}`}>
+                        <Button size="sm" variant="ghost">View</Button>
+                      </Link>
                     </TableCell>
                   </TableRow>
                 ))}

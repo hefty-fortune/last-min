@@ -128,6 +128,24 @@ export const createUser = (body: CreateUserPayload) =>
     body: JSON.stringify(body),
   });
 
+export const updateUser = (id: string, body: Partial<Pick<User, 'first_name' | 'last_name' | 'email' | 'phone'>>) =>
+  request<{ data: User; meta: Meta }>(`/admin/users/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
+
+export const updateUserRoles = (id: string, roles: string[]) =>
+  request<{ data: User; meta: Meta }>(`/admin/users/${id}/roles`, {
+    method: 'PATCH',
+    body: JSON.stringify({ roles }),
+  });
+
+export const resetUserPassword = (id: string, password: string) =>
+  request<{ data: { user_id: string; password_reset: boolean }; meta: Meta }>(`/admin/users/${id}/reset-password`, {
+    method: 'POST',
+    body: JSON.stringify({ password }),
+  });
+
 // ── Types ──
 
 export type Meta = { request_id: string };

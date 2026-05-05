@@ -1,10 +1,10 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   listProviders,
   listOrganizations,
   createProvider,
-  type Provider,
   type CreateProviderPayload,
 } from '@/lib/api';
 import {
@@ -33,7 +33,6 @@ import { toast } from 'sonner';
 export default function ProvidersPage() {
   const [open, setOpen] = useState(false);
   const [filterOrg, setFilterOrg] = useState('');
-  const [detail, setDetail] = useState<Provider | null>(null);
   const [form, setForm] = useState<CreateProviderPayload>({
     organization_id: '',
     display_name: '',
@@ -138,22 +137,6 @@ export default function ProvidersPage() {
         </select>
       </div>
 
-      <Dialog open={!!detail} onOpenChange={() => setDetail(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Provider Details</DialogTitle>
-          </DialogHeader>
-          {detail && (
-            <dl className="space-y-3 text-sm">
-              <div><dt className="text-muted-foreground">Provider ID</dt><dd className="font-mono">{detail.provider_id}</dd></div>
-              <div><dt className="text-muted-foreground">Organization ID</dt><dd className="font-mono">{detail.organization_id}</dd></div>
-              <div><dt className="text-muted-foreground">Display Name</dt><dd>{detail.display_name}</dd></div>
-              <div><dt className="text-muted-foreground">Status</dt><dd><Badge variant={detail.status === 'active' ? 'default' : 'secondary'}>{detail.status}</Badge></dd></div>
-            </dl>
-          )}
-        </DialogContent>
-      </Dialog>
-
       <Card>
         <CardHeader>
           <CardTitle>All Providers</CardTitle>
@@ -168,7 +151,7 @@ export default function ProvidersPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Display Name</TableHead>
-                  <TableHead>Organization ID</TableHead>
+                  <TableHead>Organization</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead />
                 </TableRow>
@@ -184,9 +167,9 @@ export default function ProvidersPage() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Button size="sm" variant="ghost" onClick={() => setDetail(p)}>
-                        View
-                      </Button>
+                      <Link to={`/providers/${p.provider_id}`}>
+                        <Button size="sm" variant="ghost">View</Button>
+                      </Link>
                     </TableCell>
                   </TableRow>
                 ))}

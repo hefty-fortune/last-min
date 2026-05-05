@@ -1,9 +1,9 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   listOrganizations,
   createOrganization,
-  type Organization,
   type CreateOrganizationPayload,
 } from '@/lib/api';
 import {
@@ -39,7 +39,6 @@ const emptyForm: CreateOrganizationPayload = {
 export default function OrganizationsPage() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
-  const [detail, setDetail] = useState<Organization | null>(null);
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
@@ -108,24 +107,6 @@ export default function OrganizationsPage() {
         </Dialog>
       </div>
 
-      <Dialog open={!!detail} onOpenChange={() => setDetail(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Organization Details</DialogTitle>
-          </DialogHeader>
-          {detail && (
-            <dl className="space-y-3 text-sm">
-              <div><dt className="text-muted-foreground">ID</dt><dd className="font-mono">{detail.organization_id}</dd></div>
-              <div><dt className="text-muted-foreground">Legal Name</dt><dd>{detail.legal_name}</dd></div>
-              <div><dt className="text-muted-foreground">Display Name</dt><dd>{detail.display_name}</dd></div>
-              <div><dt className="text-muted-foreground">Tax ID</dt><dd>{detail.tax_id ?? '—'}</dd></div>
-              <div><dt className="text-muted-foreground">Email</dt><dd>{detail.contact_email}</dd></div>
-              <div><dt className="text-muted-foreground">Phone</dt><dd>{detail.contact_phone}</dd></div>
-            </dl>
-          )}
-        </DialogContent>
-      </Dialog>
-
       <Card>
         <CardHeader>
           <CardTitle>All Organizations</CardTitle>
@@ -154,9 +135,9 @@ export default function OrganizationsPage() {
                     <TableCell>{org.contact_email}</TableCell>
                     <TableCell>{org.contact_phone}</TableCell>
                     <TableCell>
-                      <Button size="sm" variant="ghost" onClick={() => setDetail(org)}>
-                        View
-                      </Button>
+                      <Link to={`/organizations/${org.organization_id}`}>
+                        <Button size="sm" variant="ghost">View</Button>
+                      </Link>
                     </TableCell>
                   </TableRow>
                 ))}
