@@ -21,6 +21,9 @@ use App\Modules\AdminSetup\Application\Service\GetUserService;
 use App\Modules\AdminSetup\Application\Service\ListOrganizationsService;
 use App\Modules\AdminSetup\Application\Service\ListProvidersService;
 use App\Modules\AdminSetup\Application\Service\ListUsersService;
+use App\Modules\AdminSetup\Application\Service\ResetUserPasswordService;
+use App\Modules\AdminSetup\Application\Service\UpdateUserRolesService;
+use App\Modules\AdminSetup\Application\Service\UpdateUserService;
 use App\Modules\AdminSetup\Infrastructure\Persistence\PdoAdminProviderRepository;
 use App\Modules\AdminSetup\Infrastructure\Persistence\PdoOrganizationRepository;
 use App\Modules\AdminSetup\Infrastructure\Persistence\PdoUserRepository;
@@ -90,7 +93,10 @@ final class AppKernel
             new UserAdminController(
                 new CreateUserService(new PdoAdminProviderRepository($pdo), new PdoUserRepository($pdo)),
                 new GetUserService(new PdoUserRepository($pdo)),
-                new ListUsersService(new PdoUserRepository($pdo))
+                new ListUsersService(new PdoUserRepository($pdo)),
+                new UpdateUserService(new PdoUserRepository($pdo)),
+                new UpdateUserRolesService(new PdoUserRepository($pdo)),
+                new ResetUserPasswordService(new PdoUserRepository($pdo))
             ),
             new ApiKeyController(new CreateApiKeyService($apiKeys), new DeleteApiKeyService($apiKeys), new ListApiKeysService($apiKeys)),
             new AuthController(new LoginService($userAuth, $sessions)),

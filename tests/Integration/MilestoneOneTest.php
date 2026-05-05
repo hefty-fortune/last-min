@@ -20,6 +20,9 @@ use App\Modules\AdminSetup\Application\Service\GetUserService;
 use App\Modules\AdminSetup\Application\Service\ListOrganizationsService;
 use App\Modules\AdminSetup\Application\Service\ListProvidersService;
 use App\Modules\AdminSetup\Application\Service\ListUsersService;
+use App\Modules\AdminSetup\Application\Service\ResetUserPasswordService;
+use App\Modules\AdminSetup\Application\Service\UpdateUserRolesService;
+use App\Modules\AdminSetup\Application\Service\UpdateUserService;
 use App\Modules\AdminSetup\Infrastructure\Persistence\PdoAdminProviderRepository;
 use App\Modules\AdminSetup\Infrastructure\Persistence\PdoOrganizationRepository;
 use App\Modules\AdminSetup\Infrastructure\Persistence\PdoUserRepository;
@@ -97,7 +100,10 @@ final class MilestoneOneTest extends TestCase
             new UserAdminController(
                 new CreateUserService(new PdoAdminProviderRepository($this->pdo), new PdoUserRepository($this->pdo)),
                 new GetUserService(new PdoUserRepository($this->pdo)),
-                new ListUsersService(new PdoUserRepository($this->pdo))
+                new ListUsersService(new PdoUserRepository($this->pdo)),
+                new UpdateUserService(new PdoUserRepository($this->pdo)),
+                new UpdateUserRolesService(new PdoUserRepository($this->pdo)),
+                new ResetUserPasswordService(new PdoUserRepository($this->pdo))
             ),
             new ApiKeyController(new CreateApiKeyService($apiKeys), new DeleteApiKeyService($apiKeys), new ListApiKeysService($apiKeys)),
             new AuthController(new LoginService(new PdoUserAuthRepository($this->pdo), new PdoAuthSessionRepository($this->pdo))),

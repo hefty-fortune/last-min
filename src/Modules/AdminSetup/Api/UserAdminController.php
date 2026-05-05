@@ -11,6 +11,9 @@ use App\Modules\AdminSetup\Application\Dto\CreateUserRequest;
 use App\Modules\AdminSetup\Application\Service\CreateUserService;
 use App\Modules\AdminSetup\Application\Service\GetUserService;
 use App\Modules\AdminSetup\Application\Service\ListUsersService;
+use App\Modules\AdminSetup\Application\Service\ResetUserPasswordService;
+use App\Modules\AdminSetup\Application\Service\UpdateUserRolesService;
+use App\Modules\AdminSetup\Application\Service\UpdateUserService;
 
 final class UserAdminController
 {
@@ -18,6 +21,9 @@ final class UserAdminController
         private CreateUserService $service,
         private GetUserService $getService,
         private ListUsersService $listService,
+        private UpdateUserService $updateService,
+        private UpdateUserRolesService $updateRolesService,
+        private ResetUserPasswordService $resetPasswordService,
     ) {
     }
 
@@ -53,6 +59,36 @@ final class UserAdminController
     public function get(ActorContext $actor, string $userId): ApiResponse
     {
         $data = $this->getService->getById($actor, $userId);
+
+        return ApiResponse::ok(['data' => $data, 'meta' => ['request_id' => uniqid('req_', true)]]);
+    }
+
+    public function update(ActorContext $actor, Request $request, string $userId): ApiResponse
+    {
+        $fields = [];
+        foreach (['first_name', 'last_name', 'email', 'phone'] as $field) {
+            if (array_key_exists($field, $request->body)) {
+                $fields[$field] = $request->body[$field];
+            }
+        }
+
+        $data = $this->updateService->update($actor, $userId, $fields);
+
+        return ApiResponse::ok(['data' => $data, 'meta' => ['request_id' => uniqid('req_', true)]]);
+    }
+
+    public function updateRoles(ActorContext $actor, Request $request, string $userId): ApiResponse
+    {
+        $roles = $request->body['roles'] ?? [];
+        $data = $this->updateRolesService->update($actor, $userId, is_array($roles) ? array_values($roles) : []);
+
+        return ApiResponse::ok(['data' => $data, 'meta' => ['request_id' => uniqid('req_', true)]]);
+    }
+
+    public function resetPassword(ActorContext $actor, Request $request, string $userId): ApiResponse
+    {
+        $password = (string) ($request->body['password'] ?? '');
+        $data = $this->resetPasswordService->reset($actor, $userId, $password);
 
         return ApiResponse::ok(['data' => $data, 'meta' => ['request_id' => uniqid('req_', true)]]);
     }

@@ -95,6 +95,21 @@ final class ApiV1Routes
             return $adminUsers->get($actor, $params['user_id']);
         });
 
+        $router->add('PATCH', '/api/v1/admin/users/{user_id}', function (Request $request, array $params) use ($adminUsers) {
+            $actor = $this->resolver->resolve($request->headers);
+            return $adminUsers->update($actor, $request, $params['user_id']);
+        });
+
+        $router->add('PATCH', '/api/v1/admin/users/{user_id}/roles', function (Request $request, array $params) use ($adminUsers) {
+            $actor = $this->resolver->resolve($request->headers);
+            return $adminUsers->updateRoles($actor, $request, $params['user_id']);
+        });
+
+        $router->add('POST', '/api/v1/admin/users/{user_id}/reset-password', function (Request $request, array $params) use ($adminUsers) {
+            $actor = $this->resolver->resolve($request->headers);
+            return $adminUsers->resetPassword($actor, $request, $params['user_id']);
+        });
+
         $router->add('POST', '/api/v1/api-key', function (Request $request) use ($apiKeys) {
             $actor = $this->resolver->resolve($request->headers);
             return $apiKeys->create($actor, $request);

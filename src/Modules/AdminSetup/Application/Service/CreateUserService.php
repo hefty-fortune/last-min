@@ -63,8 +63,8 @@ final class CreateUserService
 
     private function assertAdmin(ActorContext $actor): void
     {
-        if (!$actor->hasRole('admin') && !$actor->hasRole('super-admin')) {
-            throw new ApiException(403, new ApiError('FORBIDDEN_ROLE_MISSING', 'Admin role is required.'));
+        if (!$actor->hasRole('admin') && !$actor->hasRole('super-admin') && !$actor->hasRole('org_admin')) {
+            throw new ApiException(403, new ApiError('FORBIDDEN_ROLE_MISSING', 'Admin or org_admin role is required.'));
         }
     }
 
