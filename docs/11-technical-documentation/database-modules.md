@@ -9,11 +9,11 @@
                            Locations                name, address, service type
 
 
-  Slot                     Slot                     loc_rel, service_type_rel, state, price, capacity, datetime, description, tags
+  Opening                     Opening                     loc_rel, service_type_rel, state, price, capacity, datetime, description, tags
 
 
-  Booking                  Booking                  slot_rel, user_rel, payment_rel, status, expires_at
-                           Rezevation_locks         lock_id, locked_until, locked_by, slot_rel, booking_rel
+  Booking                  Booking                  opening_rel, user_rel, payment_rel, status, expires_at
+                           Rezevation_locks         lock_id, locked_until, locked_by, opening_rel, booking_rel
                            Payment                  booking_rel, user_rel, status,
                            Booking_confirmation confirmation_id, booking_rel, confirmed_at, status
 
@@ -21,8 +21,8 @@
   Cancellation             Cancellation             booking_rel, reason
 
 
-  feeback                  Reliabilty               count_sum_slots_created, count_slots_cancelled, count_slots_completed, loc_rel
-                           Rating                   slot_rel, feedback_text, rating
+  feeback                  Reliabilty               count_sum_openings_created, count_openings_cancelled, count_openings_completed, loc_rel
+                           Rating                   opening_rel, feedback_text, rating
 
 
   Admin                    TBD

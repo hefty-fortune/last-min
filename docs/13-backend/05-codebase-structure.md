@@ -14,7 +14,7 @@ src/
   Modules/
     Identity/
     Providers/
-    Slots/
+    Openings/
     Bookings/
     Payments/
     Refunds/

@@ -212,7 +212,7 @@ last-min/
 
 ### 5.6 Openings
 
-- **Purpose:** publishable last-minute openings/slots.
+- **Purpose:** publishable last-minute openings.
 - **Owns:** opening lifecycle and reservable opening metadata.
 - **Interfaces:** Providers, ServiceCatalog, Booking.
 - **Out of scope:** complex long-term calendar optimization.
@@ -328,7 +328,7 @@ Rules:
 4. **ADR-004:** Enforce idempotency on critical writes.
 5. **ADR-005:** Use transactional outbox for reliable async side effects.
 6. **ADR-006:** Treat Stripe webhook ingestion as deduplicated, retry-safe, async-first platform flow.
-7. **ADR-007:** Protect slot reservation with transactions + locking.
+7. **ADR-007:** Protect opening reservation with transactions + locking.
 8. **ADR-008:** Keep provider foundation supporting both individual and organization models from start.
 9. **ADR-009:** Keep no-show policy in Booking domain for MVP; emit events for Refunds/Notifications.
 10. **ADR-010:** Keep standardized API error envelope across all modules.

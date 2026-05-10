@@ -36,7 +36,7 @@ The subscription model provides tiered advantages to providers.
 
 Subscription does not reduce commission percentage.
 
-Subscription tiers may include combinations of the following: • Priority listing placement • Featured slot exposure • Analytics dashboard access • Enhanced brand profile customization • Faster payout cycles • Increased slot publishing limits • Promotional boosts Subscription serves to increase provider lifetime value without distorting core transaction economics.
+Subscription tiers may include combinations of the following: • Priority listing placement • Featured opening exposure • Analytics dashboard access • Enhanced brand profile customization • Faster payout cycles • Increased opening publishing limits • Promotional boosts Subscription serves to increase provider lifetime value without distorting core transaction economics.
 
 Subscription pricing should reflect premium positioning and avoid signaling discount-market behavior.
 
@@ -70,19 +70,19 @@ Provider cancellation increases visible cancellation metrics.
 
 No financial penalty is applied in MVP, but the architecture must allow it in future.
 
-Strict no-refund policy for users protects scarcity value of time-sensitive slots.
+Strict no-refund policy for users protects scarcity value of time-sensitive openings.
 
 Cancellation discipline is central to marketplace trust.
 
 ### Unit economics (per booking logic)
 
-For each booking: User pays full slot price.
+For each booking: User pays full opening price.
 
 Platform retains 15-20% commission.
 
 Provider receives 80-85% after payout trigger.
 
-Platform revenue scales with: • Booking volume • Average slot price • Subscription uptake Costs include: • Stripe transaction fees • Hosting and infrastructure • Marketing acquisition • Customer support • Chargeback and refund risk Early phase focus should be on high average booking value to maintain healthy margins.
+Platform revenue scales with: • Booking volume • Average opening price • Subscription uptake Costs include: • Stripe transaction fees • Hosting and infrastructure • Marketing acquisition • Customer support • Chargeback and refund risk Early phase focus should be on high average booking value to maintain healthy margins.
 
 ### Risk and fraud considerations
 
@@ -118,7 +118,7 @@ Platform payout timing ensures provider confidence in receiving funds.
 
 Future financial penalty system for provider cancellations may be introduced.
 
-Dynamic pricing or bidding mechanisms may increase slot monetization.
+Dynamic pricing or bidding mechanisms may increase opening monetization.
 
 Platform-native wallet or credit system may improve liquidity control.
 

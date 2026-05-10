@@ -19,7 +19,7 @@
 
 #### hold
 
-A temporary reservation was created for the slot. The slot is protected while the user completes payment. The hold must have an expiration timestamp.
+A temporary reservation was created for the opening. The opening is protected while the user completes payment. The hold must have an expiration timestamp.
 
 #### payment_pending
 
@@ -27,7 +27,7 @@ The system has initiated payment and is waiting for the final outcome. This may 
 
 #### confirmed
 
-Payment succeeded and the booking is valid. The slot is now fully booked.
+Payment succeeded and the booking is valid. The opening is now fully booked.
 
 #### completed
 

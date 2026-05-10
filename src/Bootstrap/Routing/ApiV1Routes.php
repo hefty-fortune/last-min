@@ -111,6 +111,30 @@ final class ApiV1Routes
             return $openings->create($actor, $request, $params['provider_id']);
         });
 
+        $router->add('GET', '/api/v1/providers/{provider_id}/openings', function (Request $request, array $params) use ($openings) {
+            $actor = $this->resolver->resolve($request->headers);
+            return $openings->list($actor, $request, $params['provider_id']);
+        });
+
+        $router->add('GET', '/api/v1/providers/{provider_id}/openings/{opening_id}', function (Request $request, array $params) use ($openings) {
+            $actor = $this->resolver->resolve($request->headers);
+            return $openings->get($actor, $params['provider_id'], $params['opening_id']);
+        });
+
+        $router->add('POST', '/api/v1/providers/{provider_id}/openings/{opening_id}:publish', function (Request $request, array $params) use ($openings) {
+            $actor = $this->resolver->resolve($request->headers);
+            return $openings->publish($actor, $request, $params['provider_id'], $params['opening_id']);
+        });
+
+        $router->add('POST', '/api/v1/providers/{provider_id}/openings/{opening_id}:cancel', function (Request $request, array $params) use ($openings) {
+            $actor = $this->resolver->resolve($request->headers);
+            return $openings->cancel($actor, $request, $params['provider_id'], $params['opening_id']);
+        });
+
+        $router->add('GET', '/api/v1/public/openings', function (Request $request) use ($openings) {
+            return $openings->listPublic($request);
+        });
+
         $router->add('POST', '/api/v1/bookings', function (Request $request) use ($bookings) {
             $actor = $this->resolver->resolve($request->headers);
             return $bookings->create($actor, $request);

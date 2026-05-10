@@ -6,7 +6,7 @@ The product experience must feel premium, fast, and trustworthy.
 
 The interface must prioritize clarity and speed of decision-making.
 
-Users must understand immediately that slots are scarce and time-sensitive.
+Users must understand immediately that openings are scarce and time-sensitive.
 
 The booking process must require minimal friction.
 
@@ -20,13 +20,13 @@ The experience must reinforce trust in payments and confirmations.
 
 ### User app flow
 
-User opens the application and sees available last-minute slots.
+User opens the application and sees available last-minute openings.
 
-Slots are presented in a simple and visually clean list or card format.
+Openings are presented in a simple and visually clean list or card format.
 
-Users can filter slots by category, location, price range, and time window.
+Users can filter openings by category, location, price range, and time window.
 
-Users open slot details to review provider information and appointment specifics.
+Users open opening details to review provider information and appointment specifics.
 
 A clear “Book Now” action initiates the payment flow.
 
@@ -42,9 +42,9 @@ The interface must always clearly show booking status.
 
 Providers access the provider portal to manage their availability.
 
-Providers create slots by entering time, duration, capacity, and price.
+Providers create openings by entering time, duration, capacity, and price.
 
-Providers publish slots to make them publicly visible.
+Providers publish openings to make them publicly visible.
 
 Providers receive notifications when a booking occurs.
 
@@ -66,7 +66,7 @@ Typography must be modern and readable.
 
 Visual clutter must be avoided.
 
-Slot listings must highlight key information clearly: time, provider, and price.
+Opening listings must highlight key information clearly: time, provider, and price.
 
 Animations should be subtle and support perceived responsiveness.
 
@@ -92,19 +92,19 @@ Trust signals reduce hesitation during quick booking decisions.
 
 Scarcity must be visible but not manipulative.
 
-Slots must clearly display remaining time until appointment.
+Openings must clearly display remaining time until appointment.
 
 Visual cues may indicate urgency when appointment time is near.
 
-Users must understand that slots can disappear quickly.
+Users must understand that openings can disappear quickly.
 
-System messaging must clearly explain when a slot becomes unavailable.
+System messaging must clearly explain when a opening becomes unavailable.
 
 Scarcity reinforces the first-come, first-serve model.
 
 ### Error and edge case UX
 
-If a slot becomes unavailable during checkout, the user must be informed immediately.
+If a opening becomes unavailable during checkout, the user must be informed immediately.
 
 The interface must clearly explain why booking could not be completed.
 
@@ -126,7 +126,7 @@ Instructions for arrival may be included.
 
 Confirmation must be accessible later from booking history.
 
-Confirmation messages must reassure the user that the slot is secured.
+Confirmation messages must reassure the user that the opening is secured.
 
 ### Review and feedback UX
 
@@ -150,6 +150,6 @@ UX structure must allow expansion to new service categories.
 
 Navigation structure must support additional cities and verticals.
 
-Future personalization features may adapt slot recommendations.
+Future personalization features may adapt opening recommendations.
 
 UX must remain consistent as features expand.

@@ -2,9 +2,9 @@
 
 ### MVP functional scope
 
-The MVP allows curated providers to manually publish last-minute availability slots.
+The MVP allows curated providers to manually publish last-minute availability openings.
 
-Users can browse public slots and immediately confirm and pay to secure a booking.
+Users can browse public openings and immediately confirm and pay to secure a booking.
 
 > Note: Makes sense for fixed price services (I.e. tickets), but variable cost services might require
 
@@ -28,11 +28,11 @@ All additional features such as bidding, external system integration, and financ
 
 ### Core booking flow
 
-Provider creates slot and publishes it.
+Provider creates opening and publishes it.
 
-Slot becomes publicly visible and bookable.
+Opening becomes publicly visible and bookable.
 
-User selects slot and initiates booking.
+User selects opening and initiates booking.
 
 System performs atomic reservation control during checkout to prevent double booking.
 
@@ -48,9 +48,9 @@ After appointment time passes and review window expires, payout is triggered.
 
 If provider cancels before appointment, user receives automatic refund.
 
-### Slot lifecycle and state machine
+### Opening lifecycle and state machine
 
-Slot states include: Draft – created but not visible.
+Opening states include: Draft – created but not visible.
 
 Public – visible and bookable.
 
@@ -66,7 +66,7 @@ Expired – appointment time passed without booking.
 
 All state transitions must be logged and auditable.
 
-Concurrency control must ensure only one successful booking per slot.
+Concurrency control must ensure only one successful booking per opening.
 
 ### User features (MVP)
 
@@ -78,7 +78,7 @@ Mandatory phone verification.
 
 Secure payment method storage via Stripe.
 
-Browse slots with filtering by: • Category • Time window • Location area • Price range View slot details including provider information, time, duration, and price.
+Browse openings with filtering by: • Category • Time window • Location area • Price range View opening details including provider information, time, duration, and price.
 
 Immediate booking and payment flow.
 
@@ -96,7 +96,7 @@ Provider onboarding and approval process.
 
 Provider profile management.
 
-Manual slot creation including: • Time • Duration • Price • Capacity • Notes Publish and unpublish slot (if not booked).
+Manual opening creation including: • Time • Duration • Price • Capacity • Notes Publish and unpublish opening (if not booked).
 
 View upcoming bookings.
 
@@ -114,7 +114,7 @@ View provider cancellation metrics.
 
 View booking records.
 
-Basic moderation of providers and slots.
+Basic moderation of providers and openings.
 
 Manual override ability for exceptional cases.
 
@@ -142,7 +142,7 @@ Tier benefits may include: • Priority listing • Featured exposure • Advanc
 
 ### Concurrency and fairness requirements
 
-The system must prevent double booking of a slot.
+The system must prevent double booking of a opening.
 
 Atomic reservation logic must be implemented during payment initiation.
 
@@ -150,7 +150,7 @@ Stripe idempotency keys must be used for payment safety.
 
 If two users attempt to book simultaneously, only one transaction may complete successfully.
 
-The other user must receive clear notification that the slot is no longer available.
+The other user must receive clear notification that the opening is no longer available.
 
 Speed and clarity are critical for user trust.
 

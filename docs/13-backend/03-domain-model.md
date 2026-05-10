@@ -12,7 +12,7 @@ The backend is organized around the following bounded contexts or modules:
 - Staff
 - Services
 - Resources
-- Slots
+- Openings
 - Bookings
 - Payments
 - Refunds
@@ -44,7 +44,7 @@ Locations owns physical or operational places where services are delivered. It s
 
 #### Staff
 
-Staff owns provider-associated personnel who may perform services or be attached to slots. It should support both simple and more structured provider teams.
+Staff owns provider-associated personnel who may perform services or be attached to openings. It should support both simple and more structured provider teams.
 
 #### Services
 
@@ -52,15 +52,15 @@ Services owns the definition of what the provider offers to clients. A service i
 
 #### Resources
 
-Resources owns optional allocatable assets, such as a chair, room, table, or other limited resource needed for a slot. Resources are optional in the MVP, but the model should support them.
+Resources owns optional allocatable assets, such as a chair, room, table, or other limited resource needed for a opening. Resources are optional in the MVP, but the model should support them.
 
-#### Slots
+#### Openings
 
-Slots owns provider-published availability offers. A slot represents a sellable, time-bound service opportunity with a fixed price in the MVP. Slots should not own payment state or refund state.
+Openings owns provider-published availability offers. A opening represents a sellable, time-bound service opportunity with a fixed price in the MVP. Openings should not own payment state or refund state.
 
 #### Bookings
 
-Bookings owns the reservation lifecycle. It is the central aggregate for client reservation attempts and booking outcome state. It must coordinate safely with slots, payments, and refunds. This is one of the most critical modules in the system.
+Bookings owns the reservation lifecycle. It is the central aggregate for client reservation attempts and booking outcome state. It must coordinate safely with openings, payments, and refunds. This is one of the most critical modules in the system.
 
 #### Payments
 
@@ -114,22 +114,22 @@ The provider-side model follows these rules:
 - The model should support small individual providers without needing a separate architecture.
 - The same model should scale to organizations with multiple staff and locations.
 
-## Slot model
+## Opening model
 
-A slot is a provider-published offering of a specific time window for a service.
+A opening is a provider-published offering of a specific time window for a service.
 
-- A slot belongs to one provider account.
-- A slot may belong to one location.
-- A slot may belong to one staff member.
-- A slot belongs to one service.
-- A slot may optionally reference a resource.
-- A slot has a start time and end time.
-- A slot has a fixed price and currency in the MVP.
-- A slot should not carry payment lifecycle logic.
-- A slot should not directly represent whether money was refunded.
-- Slot availability should be derived through valid booking logic, not duplicated informally.
+- A opening belongs to one provider account.
+- A opening may belong to one location.
+- A opening may belong to one staff member.
+- A opening belongs to one service.
+- A opening may optionally reference a resource.
+- A opening has a start time and end time.
+- A opening has a fixed price and currency in the MVP.
+- A opening should not carry payment lifecycle logic.
+- A opening should not directly represent whether money was refunded.
+- Opening availability should be derived through valid booking logic, not duplicated informally.
 
-Recommended slot statuses:
+Recommended opening statuses:
 
 - `draft`
 - `public`
@@ -144,7 +144,7 @@ Recommended slot statuses:
 A booking represents a client's reservation attempt and lifecycle.
 
 - A booking belongs to one client user.
-- A booking belongs to one slot.
+- A booking belongs to one opening.
 - A booking belongs to one provider account.
 - A booking may contain pricing snapshots relevant at booking time.
 - A booking is the central place where reservation state is tracked.

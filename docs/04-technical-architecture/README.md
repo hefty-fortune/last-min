@@ -6,11 +6,11 @@ The platform follows a standard client–server architecture.
 
 The frontend application communicates with a backend API layer.
 
-The backend manages business logic, slot lifecycle, payment integration, and state transitions.
+The backend manages business logic, opening lifecycle, payment integration, and state transitions.
 
 Stripe is used for payment processing and payout management.
 
-A relational database stores users, providers, slots, bookings, payments, and metrics.
+A relational database stores users, providers, openings, bookings, payments, and metrics.
 
 The system must ensure atomic booking operations to prevent double booking.
 
@@ -24,7 +24,7 @@ The system is divided into the following logical modules: Authentication Module 
 
 Provider Module - Manages provider profiles, onboarding, and subscription tiers.
 
-Slot Module - Handles slot creation, publishing, lifecycle transitions, and visibility.
+Opening Module - Handles opening creation, publishing, lifecycle transitions, and visibility.
 
 Booking Module - Handles atomic reservation, payment initiation, and confirmation.
 
@@ -46,9 +46,9 @@ Core entities include: Users - Account data, phone verification status, Stripe c
 
 Providers Business profile, subscription tier, reliability metrics.
 
-Slots - Time-based availability units, status field, provider reference.
+Openings - Time-based availability units, status field, provider reference.
 
-Bookings - Reference to user and slot, payment status, timestamps.
+Bookings - Reference to user and opening, payment status, timestamps.
 
 Payments - Stripe payment intent references, refund status.
 
@@ -66,19 +66,19 @@ All foreign key relationships must be enforced at database level.
 
 Booking must be atomic.
 
-When a user initiates checkout, the system must temporarily lock the slot.
+When a user initiates checkout, the system must temporarily lock the opening.
 
-The slot enters a short-lived reserved state during payment processing.
+The opening enters a short-lived reserved state during payment processing.
 
 Stripe idempotency keys must be used to prevent duplicate payment creation.
 
-If payment succeeds, the slot transitions to booked.
+If payment succeeds, the opening transitions to booked.
 
-If payment fails or times out, the slot returns to public.
+If payment fails or times out, the opening returns to public.
 
 The reserved state is not a grace period for users; it is purely transactional.
 
-Clear feedback must be given to users if the slot becomes unavailable during checkout.
+Clear feedback must be given to users if the opening becomes unavailable during checkout.
 
 ### Stripe integration architecture
 
@@ -160,7 +160,7 @@ Compliance with EU consumer protection and data protection regulations must be c
 
 ### Extensibility planning
 
-Slot state machine must allow insertion of bidding state in future.
+Opening state machine must allow insertion of bidding state in future.
 
 Payment module must allow introduction of penalties and partial refunds.
 

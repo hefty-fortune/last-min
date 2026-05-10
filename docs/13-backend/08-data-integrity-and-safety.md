@@ -4,7 +4,7 @@
 
 This section lists system truths that must never be violated.
 
-1. A slot must not be actively booked by multiple clients at the same time.
+1. A opening must not be actively booked by multiple clients at the same time.
 2. A confirmed booking must have trustworthy payment truth.
 3. Expired or failed booking attempts must stop blocking future booking attempts.
 4. Refund actions must be traceable and must not duplicate accidentally.
@@ -19,9 +19,9 @@ This section lists system truths that must never be violated.
 
 ### Rule details
 
-#### 1. No double active booking for the same slot
+#### 1. No double active booking for the same opening
 
-The system must prevent multiple active bookings for the same slot. Booking creation must use transactional protection and a PostgreSQL uniqueness strategy appropriate for this invariant.
+The system must prevent multiple active bookings for the same opening. Booking creation must use transactional protection and a PostgreSQL uniqueness strategy appropriate for this invariant.
 
 #### 2. Confirmed booking requires trusted payment truth
 
@@ -29,7 +29,7 @@ A booking must not become confirmed unless payment success is verified by backen
 
 #### 3. Failed or expired attempts must stop blocking
 
-If a hold expires or payment fails, the booking must no longer behave as an active blocker for the slot.
+If a hold expires or payment fails, the booking must no longer behave as an active blocker for the opening.
 
 #### 4. Refunds must be traceable and idempotent
 
@@ -65,7 +65,7 @@ Booking creation, payment initiation, webhook processing, refund execution, and 
 
 #### 12. Availability truth must stay consistent
 
-The system must not let slot state, booking state, and payment state drift into contradictory meanings. The architecture must preserve a single reliable interpretation of active booking occupancy.
+The system must not let opening state, booking state, and payment state drift into contradictory meanings. The architecture must preserve a single reliable interpretation of active booking occupancy.
 
 ## Implementation principle
 
@@ -78,7 +78,7 @@ The database must enforce the following:
 - Phone number must be unique at the identity level.
 - Stripe webhook event IDs must be unique.
 - Idempotency keys must be unique within their intended operation scope.
-- Active booking duplication for the same slot must be blocked.
+- Active booking duplication for the same opening must be blocked.
 - Important booking creation must happen inside a database transaction.
 - Booking creation must use locking or equivalent transactional safeguards.
 - PostgreSQL features such as partial unique indexes should be used intentionally.

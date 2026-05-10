@@ -20,7 +20,7 @@ final class AppKernelWiringTest extends TestCase
         $pdo->exec($schema);
 
         $router = AppKernel::buildRouter($pdo, 'test_webhook_secret');
-        $response = $router->dispatch(new Request('GET', '/'));
+        $response = $router->dispatch(new Request('GET', '/', [], []));
 
         self::assertSame(404, $response->statusCode);
         self::assertSame('ROUTE_NOT_FOUND', $response->body['error']['code']);

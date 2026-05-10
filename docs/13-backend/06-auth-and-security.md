@@ -42,14 +42,14 @@ A client can:
 
 - Register and verify phone identity
 - Log in and manage their own session
-- View published slots
-- Create a booking for an available slot
+- View published openings
+- Create a booking for an available opening
 - View their own bookings
 - View their own payment-related booking status where exposed
 
 A client cannot:
 
-- Create or edit provider slots
+- Create or edit provider openings
 - Cancel bookings in the MVP
 - Modify provider-owned data
 - Trigger arbitrary refunds
@@ -61,7 +61,7 @@ A provider member can, within their own provider account and according to member
 
 - View provider account operational data
 - Create and edit provider configuration data
-- Create, edit, publish, unpublish, and cancel slots
+- Create, edit, publish, unpublish, and cancel openings
 - View bookings for their own provider account
 - Mark service outcomes such as `completed`, `provider_no_show`, or `provider_cancelled` where policy allows
 

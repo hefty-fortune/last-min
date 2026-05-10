@@ -6,10 +6,10 @@ The main business flow is:
 
 1. A provider creates a provider account as either an individual or an organization.
 2. A provider configures locations, staff, services, and optional resources.
-3. A provider publishes a last-minute slot with a fixed price.
+3. A provider publishes a last-minute opening with a fixed price.
 4. A client registers and verifies identity using phone OTP.
-5. A client browses available published slots.
-6. A client chooses a slot and attempts to book it.
+5. A client browses available published openings.
+6. A client chooses a opening and attempts to book it.
 7. The system creates a temporary booking hold.
 8. The system initiates payment through Stripe.
 9. After successful payment confirmation, the booking becomes confirmed.
@@ -22,9 +22,9 @@ The main business flow is:
 
 Booking must use a hold-based model rather than a naive "payment first, booking later" approach.
 
-Two clients can attempt to book the same slot nearly simultaneously. To prevent double booking and payment confusion, booking begins with a hold. A hold temporarily reserves the slot for a limited time window. During that period, another active booking for the same slot cannot be created.
+Two clients can attempt to book the same opening nearly simultaneously. To prevent double booking and payment confusion, booking begins with a hold. A hold temporarily reserves the opening for a limited time window. During that period, another active booking for the same opening cannot be created.
 
-The payment flow happens while the booking is in `hold` or `payment_pending`. If payment succeeds, the booking becomes `confirmed`. If payment fails or the hold expires, the booking becomes `payment_failed` or `expired`. The slot becomes available again when no active booking is still holding it.
+The payment flow happens while the booking is in `hold` or `payment_pending`. If payment succeeds, the booking becomes `confirmed`. If payment fails or the hold expires, the booking becomes `payment_failed` or `expired`. The opening becomes available again when no active booking is still holding it.
 
 Recommended rule:
 

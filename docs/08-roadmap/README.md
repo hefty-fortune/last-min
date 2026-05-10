@@ -26,11 +26,11 @@ Provider accounts and onboarding workflows must be created.
 
 > Note: Can provider have multiple internal users assigned?
 
-Basic provider portal functionality must allow slot creation and publishing.
+Basic provider portal functionality must allow opening creation and publishing.
 
-Slot browsing must be available for users.
+Opening browsing must be available for users.
 
-Core database schema must support users, providers, slots, bookings, and payments.
+Core database schema must support users, providers, openings, bookings, and payments.
 
 > Note: Maybe add feedbacks/review as a separate entity? Then we can collect data on user experience
 
@@ -46,7 +46,7 @@ Phase 2 focuses on enabling reliable booking and payment transactions.
 
 Users must be able to initiate booking and complete payment.
 
-Atomic booking logic must prevent double-booking of slots.
+Atomic booking logic must prevent double-booking of openings.
 
 Stripe payment capture must occur at booking confirmation.
 

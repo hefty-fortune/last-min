@@ -24,7 +24,7 @@ Providers agree to honor confirmed bookings.
 
 Providers acknowledge that cancellations will trigger automatic refunds and affect reliability metrics.
 
-Providers agree to maintain accurate availability when publishing slots.
+Providers agree to maintain accurate availability when publishing openings.
 
 The platform reserves the right to suspend accounts that violate reliability standards.
 
@@ -62,7 +62,7 @@ Clear no-show policy protects providers from last-minute user abandonment.
 
 Providers must agree to platform operational rules.
 
-Providers must ensure that published slots reflect real availability.
+Providers must ensure that published openings reflect real availability.
 
 Providers must honor confirmed bookings.
 

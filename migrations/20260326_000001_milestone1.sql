@@ -77,6 +77,7 @@ CREATE TABLE service_offerings (
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
+CREATE INDEX idx_service_offerings_provider_id ON service_offerings(provider_id);
 
 CREATE TABLE openings (
   id TEXT PRIMARY KEY,
@@ -88,11 +89,16 @@ CREATE TABLE openings (
   capacity INTEGER NOT NULL,
   status VARCHAR(32) NOT NULL,
   published_at TEXT NULL,
+  cancelled_at TEXT NULL,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
   price_amount BIGINT NOT NULL,
-  price_currency CHAR(3) NOT NULL
+  price_currency CHAR(3) NOT NULL,
+  FOREIGN KEY (provider_id) REFERENCES providers(id),
+  FOREIGN KEY (service_offering_id) REFERENCES service_offerings(id)
 );
+CREATE INDEX idx_openings_provider_status_starts_at ON openings(provider_id, status, starts_at);
+CREATE INDEX idx_openings_public_discovery ON openings(status, starts_at, price_amount);
 
 CREATE TABLE bookings (
   id TEXT PRIMARY KEY,

@@ -23,4 +23,4 @@ Backend documentation extracted and normalized from the uploaded backend section
 - This backend is designed as a modular monolith in plain PHP.
 - PostgreSQL is the primary database.
 - Authentication is handled by the platform's own verified phone-based identity flow with JWT-based sessions.
-- The MVP centers on fixed-price last-minute slots, immediate payment, strong booking integrity, auditability, and foundation-first architecture.
+- The MVP centers on fixed-price last-minute openings, immediate payment, strong booking integrity, auditability, and foundation-first architecture.

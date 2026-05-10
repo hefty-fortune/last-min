@@ -14,7 +14,7 @@ The first important endpoint families are:
 
 - Auth endpoints for registration, verification, login, refresh, logout, and current user retrieval
 - Provider endpoints for provider account creation and configuration
-- Slot endpoints for creation, publishing, editing, listing, and cancellation
+- Opening endpoints for creation, retrieval, publishing, listing, and cancellation
 - Booking endpoints for booking creation and booking inspection
 - Provider and admin endpoints for completion, no-show, and cancellation actions
 - Payment webhook endpoints for Stripe callbacks
@@ -25,7 +25,8 @@ Suggested endpoint groups:
 - `/auth`
 - `/me`
 - `/providers`
-- `/slots`
+- `/providers/{provider_id}/openings`
+- `/public/openings`
 - `/bookings`
 - `/payments/webhooks/stripe`
 - `/admin`
