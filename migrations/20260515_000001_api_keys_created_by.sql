@@ -1,0 +1,1 @@
+ALTER TABLE api_keys ADD COLUMN created_by VARCHAR(64) NULL;

@@ -34,7 +34,15 @@ describe('ApiKeysPage', () => {
 
   it('renders with data', async () => {
     mockListApiKeys.mockResolvedValue({
-      data: [{ client_id: 'c1', api_key_id: 'k1', name: 'My Key' }],
+      data: [{
+        api_key_id: 'k1',
+        name: 'My Key',
+        key_prefix: 'lm_abc123',
+        created_by: 'admin-1',
+        created_at: '2026-05-15T10:00:00+00:00',
+        revoked_at: null,
+        is_active: true,
+      }],
       meta: { request_id: 'r1' },
     });
     const { container } = renderPage();

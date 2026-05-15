@@ -7,7 +7,6 @@ namespace App\Modules\IdentityAccess\Application\Dto;
 final readonly class CreateApiKeyRequest
 {
     public function __construct(
-        public string $clientId,
         public string $name,
     ) {
     }
