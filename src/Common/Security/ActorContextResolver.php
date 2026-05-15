@@ -9,12 +9,18 @@ use App\Common\Api\ApiException;
 
 final class ActorContextResolver
 {
-    public function __construct(private ?BearerTokenActorResolver $bearerTokens = null)
-    {
+    public function __construct(
+        private ?BearerTokenActorResolver $bearerTokens = null,
+        private ?ApiKeyGateMiddleware $apiKeyGate = null,
+    ) {
     }
 
     public function resolve(array $headers): ActorContext
     {
+        if ($this->apiKeyGate !== null) {
+            $this->apiKeyGate->validate($headers);
+        }
+
         $subject = $headers['X-Actor-Subject'] ?? $headers['x-actor-subject'] ?? null;
         $actorId = $headers['X-Actor-Id'] ?? $headers['x-actor-id'] ?? null;
         $roles = $headers['X-Actor-Roles'] ?? $headers['x-actor-roles'] ?? '';

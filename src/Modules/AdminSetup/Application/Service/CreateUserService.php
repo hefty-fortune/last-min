@@ -46,19 +46,25 @@ final class CreateUserService
             $roles[] = $normalizedRole;
         }
 
+        $passwordHash = null;
+        if ($request->password !== null && trim($request->password) !== '') {
+            $passwordHash = password_hash($request->password, PASSWORD_BCRYPT);
+        }
+
         return $this->users->create([
             'first_name' => $request->firstName,
             'last_name' => $request->lastName,
             'email' => $request->email,
             'phone' => $request->phone,
             'provider_id' => $request->providerId,
+            'password_hash' => $passwordHash,
         ], array_values(array_unique($roles)));
     }
 
     private function assertAdmin(ActorContext $actor): void
     {
-        if (!$actor->hasRole('admin') && !$actor->hasRole('super-admin')) {
-            throw new ApiException(403, new ApiError('FORBIDDEN_ROLE_MISSING', 'Admin role is required.'));
+        if (!$actor->hasRole('admin') && !$actor->hasRole('super-admin') && !$actor->hasRole('org_admin')) {
+            throw new ApiException(403, new ApiError('FORBIDDEN_ROLE_MISSING', 'Admin or org_admin role is required.'));
         }
     }
 

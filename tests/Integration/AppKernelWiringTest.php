@@ -15,9 +15,12 @@ final class AppKernelWiringTest extends TestCase
     {
         $pdo = new PDO('sqlite::memory:');
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $schema = file_get_contents(__DIR__ . '/../../migrations/20260326_000001_milestone1.sql');
-        self::assertNotFalse($schema);
-        $pdo->exec($schema);
+        $migrations = glob(__DIR__ . '/../../migrations/*.sql');
+        foreach ($migrations as $migration) {
+            $sql = file_get_contents($migration);
+            self::assertNotFalse($sql);
+            $pdo->exec($sql);
+        }
 
         $router = AppKernel::buildRouter($pdo, 'test_webhook_secret');
         $response = $router->dispatch(new Request('GET', '/', [], []));

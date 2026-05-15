@@ -14,6 +14,7 @@ final readonly class CreateUserRequest
         public string $phone,
         public array $roles,
         public string $providerId,
+        public ?string $password = null,
     ) {
     }
 }
