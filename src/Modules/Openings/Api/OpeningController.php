@@ -40,8 +40,8 @@ final class OpeningController
             ),
         ),
         responses: [
-            new OA\Response(response: 201, description: 'Opening created'),
-            new OA\Response(response: 403, description: 'Forbidden'),
+            new OA\Response(response: 201, description: 'Opening created', content: new OA\JsonContent(ref: '#/components/schemas/OpeningCreatedResponse')),
+            new OA\Response(response: 403, description: 'Forbidden', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
         ],
     )]
     public function create(ActorContext $actor, Request $request, string $providerId): ApiResponse

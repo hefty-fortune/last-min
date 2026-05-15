@@ -36,7 +36,7 @@ final class ProviderController
             ),
         ),
         responses: [
-            new OA\Response(response: 201, description: 'Provider created'),
+            new OA\Response(response: 201, description: 'Provider created', content: new OA\JsonContent(ref: '#/components/schemas/ProviderCreatedResponse')),
         ],
     )]
     public function create(ActorContext $actor, Request $request): ApiResponse

@@ -21,8 +21,8 @@ final class MeController
         security: [['bearerAuth' => []]],
         tags: ['Auth'],
         responses: [
-            new OA\Response(response: 200, description: 'Current user info'),
-            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 200, description: 'Current user info', content: new OA\JsonContent(ref: '#/components/schemas/MeResponse')),
+            new OA\Response(response: 401, description: 'Unauthenticated', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
         ],
     )]
     public function get(ActorContext $actor): ApiResponse

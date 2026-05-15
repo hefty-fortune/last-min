@@ -37,7 +37,7 @@ final class PaymentController
             ),
         ),
         responses: [
-            new OA\Response(response: 201, description: 'Payment initiated'),
+            new OA\Response(response: 201, description: 'Payment initiated', content: new OA\JsonContent(ref: '#/components/schemas/PaymentInitiatedResponse')),
         ],
     )]
     public function initiate(ActorContext $actor, Request $request, string $bookingId): ApiResponse

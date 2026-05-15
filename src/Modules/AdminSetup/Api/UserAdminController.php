@@ -49,8 +49,8 @@ final class UserAdminController
             ),
         ),
         responses: [
-            new OA\Response(response: 201, description: 'User created'),
-            new OA\Response(response: 403, description: 'Forbidden'),
+            new OA\Response(response: 201, description: 'User created', content: new OA\JsonContent(ref: '#/components/schemas/UserCreatedResponse')),
+            new OA\Response(response: 403, description: 'Forbidden', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
         ],
     )]
     public function create(ActorContext $actor, Request $request): ApiResponse
@@ -81,7 +81,7 @@ final class UserAdminController
             new OA\Parameter(name: 'provider_id', in: 'query', required: false, schema: new OA\Schema(type: 'string')),
         ],
         responses: [
-            new OA\Response(response: 200, description: 'List of users'),
+            new OA\Response(response: 200, description: 'List of users', content: new OA\JsonContent(ref: '#/components/schemas/UserListResponse')),
         ],
     )]
     public function list(ActorContext $actor, Request $request): ApiResponse
@@ -103,8 +103,8 @@ final class UserAdminController
             new OA\Parameter(name: 'user_id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
         ],
         responses: [
-            new OA\Response(response: 200, description: 'User details'),
-            new OA\Response(response: 404, description: 'Not found'),
+            new OA\Response(response: 200, description: 'User details', content: new OA\JsonContent(ref: '#/components/schemas/UserResponse')),
+            new OA\Response(response: 404, description: 'Not found', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
         ],
     )]
     public function get(ActorContext $actor, string $userId): ApiResponse
@@ -134,8 +134,8 @@ final class UserAdminController
             ),
         ),
         responses: [
-            new OA\Response(response: 200, description: 'User updated'),
-            new OA\Response(response: 404, description: 'Not found'),
+            new OA\Response(response: 200, description: 'User updated', content: new OA\JsonContent(ref: '#/components/schemas/UserResponse')),
+            new OA\Response(response: 404, description: 'Not found', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
         ],
     )]
     public function update(ActorContext $actor, Request $request, string $userId): ApiResponse
@@ -170,7 +170,7 @@ final class UserAdminController
             ),
         ),
         responses: [
-            new OA\Response(response: 200, description: 'Roles updated'),
+            new OA\Response(response: 200, description: 'Roles updated', content: new OA\JsonContent(ref: '#/components/schemas/UserResponse')),
         ],
     )]
     public function updateRoles(ActorContext $actor, Request $request, string $userId): ApiResponse
@@ -199,7 +199,7 @@ final class UserAdminController
             ),
         ),
         responses: [
-            new OA\Response(response: 200, description: 'Password reset'),
+            new OA\Response(response: 200, description: 'Password reset', content: new OA\JsonContent(ref: '#/components/schemas/UserResponse')),
         ],
     )]
     public function resetPassword(ActorContext $actor, Request $request, string $userId): ApiResponse

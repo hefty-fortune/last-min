@@ -30,8 +30,8 @@ final class AuthController
             ),
         ),
         responses: [
-            new OA\Response(response: 200, description: 'Login successful'),
-            new OA\Response(response: 401, description: 'Invalid credentials'),
+            new OA\Response(response: 200, description: 'Login successful', content: new OA\JsonContent(ref: '#/components/schemas/LoginResponse')),
+            new OA\Response(response: 401, description: 'Invalid credentials', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
         ],
     )]
     public function login(Request $request): ApiResponse
@@ -50,7 +50,14 @@ final class AuthController
         security: [['bearerAuth' => []]],
         tags: ['Auth'],
         responses: [
-            new OA\Response(response: 200, description: 'Logged out'),
+            new OA\Response(response: 200, description: 'Logged out', content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(property: 'data', properties: [
+                        new OA\Property(property: 'logged_out', type: 'boolean'),
+                    ], type: 'object'),
+                    new OA\Property(property: 'meta', ref: '#/components/schemas/Meta'),
+                ],
+            )),
         ],
     )]
     public function logout(Request $request): ApiResponse

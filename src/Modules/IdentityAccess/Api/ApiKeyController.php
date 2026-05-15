@@ -38,7 +38,7 @@ final class ApiKeyController
             ),
         ),
         responses: [
-            new OA\Response(response: 201, description: 'API key created'),
+            new OA\Response(response: 201, description: 'API key created', content: new OA\JsonContent(ref: '#/components/schemas/ApiKeyCreatedResponse')),
         ],
     )]
     public function create(ActorContext $actor, Request $request): ApiResponse
@@ -60,7 +60,7 @@ final class ApiKeyController
             new OA\Parameter(name: 'client_id', in: 'query', required: true, schema: new OA\Schema(type: 'string')),
         ],
         responses: [
-            new OA\Response(response: 200, description: 'List of API keys'),
+            new OA\Response(response: 200, description: 'List of API keys', content: new OA\JsonContent(ref: '#/components/schemas/ApiKeyListResponse')),
         ],
     )]
     public function list(ActorContext $actor, Request $request): ApiResponse
@@ -80,7 +80,15 @@ final class ApiKeyController
             new OA\Parameter(name: 'api_key_id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
         ],
         responses: [
-            new OA\Response(response: 200, description: 'API key revoked'),
+            new OA\Response(response: 200, description: 'API key revoked', content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(property: 'data', properties: [
+                        new OA\Property(property: 'api_key_id', type: 'string'),
+                        new OA\Property(property: 'revoked', type: 'boolean'),
+                    ], type: 'object'),
+                    new OA\Property(property: 'meta', ref: '#/components/schemas/Meta'),
+                ],
+            )),
         ],
     )]
     public function delete(ActorContext $actor, string $apiKeyId): ApiResponse

@@ -41,8 +41,8 @@ final class OrganizationAdminController
             ),
         ),
         responses: [
-            new OA\Response(response: 201, description: 'Organization created'),
-            new OA\Response(response: 403, description: 'Forbidden'),
+            new OA\Response(response: 201, description: 'Organization created', content: new OA\JsonContent(ref: '#/components/schemas/OrganizationCreatedResponse')),
+            new OA\Response(response: 403, description: 'Forbidden', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
         ],
     )]
     public function create(ActorContext $actor, Request $request): ApiResponse
@@ -64,7 +64,7 @@ final class OrganizationAdminController
         security: [['bearerAuth' => []]],
         tags: ['Admin - Organizations'],
         responses: [
-            new OA\Response(response: 200, description: 'List of organizations'),
+            new OA\Response(response: 200, description: 'List of organizations', content: new OA\JsonContent(ref: '#/components/schemas/OrganizationListResponse')),
         ],
     )]
     public function list(ActorContext $actor): ApiResponse
@@ -83,8 +83,8 @@ final class OrganizationAdminController
             new OA\Parameter(name: 'organization_id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
         ],
         responses: [
-            new OA\Response(response: 200, description: 'Organization details'),
-            new OA\Response(response: 404, description: 'Not found'),
+            new OA\Response(response: 200, description: 'Organization details', content: new OA\JsonContent(ref: '#/components/schemas/OrganizationResponse')),
+            new OA\Response(response: 404, description: 'Not found', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
         ],
     )]
     public function get(ActorContext $actor, string $organizationId): ApiResponse

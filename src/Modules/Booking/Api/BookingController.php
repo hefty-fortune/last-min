@@ -37,7 +37,7 @@ final class BookingController
             ),
         ),
         responses: [
-            new OA\Response(response: 201, description: 'Booking created'),
+            new OA\Response(response: 201, description: 'Booking created', content: new OA\JsonContent(ref: '#/components/schemas/BookingCreatedResponse')),
         ],
     )]
     public function create(ActorContext $actor, Request $request): ApiResponse

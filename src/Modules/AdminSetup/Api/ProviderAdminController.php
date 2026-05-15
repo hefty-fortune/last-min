@@ -39,8 +39,8 @@ final class ProviderAdminController
             ),
         ),
         responses: [
-            new OA\Response(response: 201, description: 'Provider created'),
-            new OA\Response(response: 403, description: 'Forbidden'),
+            new OA\Response(response: 201, description: 'Provider created', content: new OA\JsonContent(ref: '#/components/schemas/AdminProviderCreatedResponse')),
+            new OA\Response(response: 403, description: 'Forbidden', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
         ],
     )]
     public function create(ActorContext $actor, Request $request): ApiResponse
@@ -63,7 +63,7 @@ final class ProviderAdminController
             new OA\Parameter(name: 'organization_id', in: 'query', required: false, schema: new OA\Schema(type: 'string')),
         ],
         responses: [
-            new OA\Response(response: 200, description: 'List of providers'),
+            new OA\Response(response: 200, description: 'List of providers', content: new OA\JsonContent(ref: '#/components/schemas/AdminProviderListResponse')),
         ],
     )]
     public function list(ActorContext $actor, Request $request): ApiResponse
@@ -85,8 +85,8 @@ final class ProviderAdminController
             new OA\Parameter(name: 'provider_id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
         ],
         responses: [
-            new OA\Response(response: 200, description: 'Provider details'),
-            new OA\Response(response: 404, description: 'Not found'),
+            new OA\Response(response: 200, description: 'Provider details', content: new OA\JsonContent(ref: '#/components/schemas/AdminProviderResponse')),
+            new OA\Response(response: 404, description: 'Not found', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
         ],
     )]
     public function get(ActorContext $actor, string $providerId): ApiResponse
