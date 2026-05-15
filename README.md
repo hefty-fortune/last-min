@@ -188,6 +188,48 @@ curl -sS \
 
 ---
 
+## API documentation (Swagger UI)
+
+Interactive API docs are available at:
+
+```
+http://localhost:8080/api/docs
+```
+
+The raw OpenAPI spec is at:
+
+```
+http://localhost:8080/api/docs/openapi.json
+```
+
+### Authorize in Swagger UI
+
+1. Generate an admin token (see [Generate a local admin bearer token](#generate-a-local-admin-bearer-token) above)
+2. Open `http://localhost:8080/api/docs`
+3. Click the **Authorize** button (lock icon, top right)
+4. Paste your token (e.g. `lm_xxxxxxxx...`) and click **Authorize**
+5. All protected endpoints will now include the `Authorization: Bearer` header automatically
+
+### Quick start: register a test admin and authorize
+
+```bash
+# 1. Generate admin token
+ADMIN_TOKEN=$(docker compose exec backend php bin/dev-bootstrap-admin-api-key.php \
+  --dsn="pgsql:host=postgres;port=5432;dbname=lastmin" \
+  --db-user="lastmin" \
+  --db-pass="lastmin" \
+  --actor-id="local-dev-admin" \
+  --role="admin" \
+  --name="Local admin token" | grep 'token:' | awk '{print $2}')
+
+echo "$ADMIN_TOKEN"
+
+# 2. Open Swagger UI and paste the token
+# http://localhost:8080/api/docs
+```
+
+---
+
 ## Smoke test: admin + API key endpoints
 
 Run in order.

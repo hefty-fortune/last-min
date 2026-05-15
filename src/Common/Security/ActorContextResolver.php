@@ -40,6 +40,15 @@ final class ActorContextResolver
             }
         }
 
+        // Fall back to resolving actor from X-Api-Key when no Bearer token is provided
+        $apiKey = $headers['X-Api-Key'] ?? $headers['x-api-key'] ?? null;
+        if (is_string($apiKey) && trim($apiKey) !== '' && $this->bearerTokens !== null) {
+            $actor = $this->bearerTokens->resolve($apiKey);
+            if ($actor !== null) {
+                return $actor;
+            }
+        }
+
         throw new ApiException(401, new ApiError('AUTH_IDENTITY_NOT_LINKED', 'Missing upstream actor linkage.'));
     }
 }

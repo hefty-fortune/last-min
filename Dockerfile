@@ -15,4 +15,4 @@ RUN chmod +x /usr/local/bin/app-entrypoint
 EXPOSE 8080
 
 ENTRYPOINT ["app-entrypoint"]
-CMD ["php", "-S", "0.0.0.0:8080", "-t", "public"]
+CMD ["php", "-S", "0.0.0.0:8080", "-t", "public", "public/router.php"]

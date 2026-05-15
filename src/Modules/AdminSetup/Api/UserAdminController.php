@@ -14,6 +14,7 @@ use App\Modules\AdminSetup\Application\Service\ListUsersService;
 use App\Modules\AdminSetup\Application\Service\ResetUserPasswordService;
 use App\Modules\AdminSetup\Application\Service\UpdateUserRolesService;
 use App\Modules\AdminSetup\Application\Service\UpdateUserService;
+use OpenApi\Attributes as OA;
 
 final class UserAdminController
 {
@@ -27,6 +28,31 @@ final class UserAdminController
     ) {
     }
 
+    #[OA\Post(
+        path: '/admin/users',
+        summary: 'Create a user',
+        security: [['apiKey' => []]],
+        tags: ['Admin - Users'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['first_name', 'last_name', 'email', 'phone', 'provider_id'],
+                properties: [
+                    new OA\Property(property: 'first_name', type: 'string'),
+                    new OA\Property(property: 'last_name', type: 'string'),
+                    new OA\Property(property: 'email', type: 'string', format: 'email'),
+                    new OA\Property(property: 'phone', type: 'string'),
+                    new OA\Property(property: 'roles', type: 'array', items: new OA\Items(type: 'string')),
+                    new OA\Property(property: 'provider_id', type: 'string'),
+                    new OA\Property(property: 'password', type: 'string', nullable: true),
+                ],
+            ),
+        ),
+        responses: [
+            new OA\Response(response: 201, description: 'User created', content: new OA\JsonContent(ref: '#/components/schemas/UserCreatedResponse')),
+            new OA\Response(response: 403, description: 'Forbidden', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
+        ],
+    )]
     public function create(ActorContext $actor, Request $request): ApiResponse
     {
         $roles = $request->body['roles'] ?? [];
@@ -46,6 +72,18 @@ final class UserAdminController
         return ApiResponse::created(['data' => $data, 'meta' => ['request_id' => uniqid('req_', true)]]);
     }
 
+    #[OA\Get(
+        path: '/admin/users',
+        summary: 'List users',
+        security: [['apiKey' => []]],
+        tags: ['Admin - Users'],
+        parameters: [
+            new OA\Parameter(name: 'provider_id', in: 'query', required: false, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'List of users', content: new OA\JsonContent(ref: '#/components/schemas/UserListResponse')),
+        ],
+    )]
     public function list(ActorContext $actor, Request $request): ApiResponse
     {
         $providerId = isset($request->attributes['query']['provider_id'])
@@ -56,6 +94,19 @@ final class UserAdminController
         return ApiResponse::ok(['data' => $data, 'meta' => ['request_id' => uniqid('req_', true)]]);
     }
 
+    #[OA\Get(
+        path: '/admin/users/{user_id}',
+        summary: 'Get a user by ID',
+        security: [['apiKey' => []]],
+        tags: ['Admin - Users'],
+        parameters: [
+            new OA\Parameter(name: 'user_id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'User details', content: new OA\JsonContent(ref: '#/components/schemas/UserResponse')),
+            new OA\Response(response: 404, description: 'Not found', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
+        ],
+    )]
     public function get(ActorContext $actor, string $userId): ApiResponse
     {
         $data = $this->getService->getById($actor, $userId);
@@ -63,6 +114,30 @@ final class UserAdminController
         return ApiResponse::ok(['data' => $data, 'meta' => ['request_id' => uniqid('req_', true)]]);
     }
 
+    #[OA\Patch(
+        path: '/admin/users/{user_id}',
+        summary: 'Update user details',
+        security: [['apiKey' => []]],
+        tags: ['Admin - Users'],
+        parameters: [
+            new OA\Parameter(name: 'user_id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(property: 'first_name', type: 'string'),
+                    new OA\Property(property: 'last_name', type: 'string'),
+                    new OA\Property(property: 'email', type: 'string', format: 'email'),
+                    new OA\Property(property: 'phone', type: 'string'),
+                ],
+            ),
+        ),
+        responses: [
+            new OA\Response(response: 200, description: 'User updated', content: new OA\JsonContent(ref: '#/components/schemas/UserResponse')),
+            new OA\Response(response: 404, description: 'Not found', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
+        ],
+    )]
     public function update(ActorContext $actor, Request $request, string $userId): ApiResponse
     {
         $fields = [];
@@ -77,6 +152,27 @@ final class UserAdminController
         return ApiResponse::ok(['data' => $data, 'meta' => ['request_id' => uniqid('req_', true)]]);
     }
 
+    #[OA\Patch(
+        path: '/admin/users/{user_id}/roles',
+        summary: 'Update user roles',
+        security: [['apiKey' => []]],
+        tags: ['Admin - Users'],
+        parameters: [
+            new OA\Parameter(name: 'user_id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['roles'],
+                properties: [
+                    new OA\Property(property: 'roles', type: 'array', items: new OA\Items(type: 'string')),
+                ],
+            ),
+        ),
+        responses: [
+            new OA\Response(response: 200, description: 'Roles updated', content: new OA\JsonContent(ref: '#/components/schemas/UserResponse')),
+        ],
+    )]
     public function updateRoles(ActorContext $actor, Request $request, string $userId): ApiResponse
     {
         $roles = $request->body['roles'] ?? [];
@@ -85,6 +181,27 @@ final class UserAdminController
         return ApiResponse::ok(['data' => $data, 'meta' => ['request_id' => uniqid('req_', true)]]);
     }
 
+    #[OA\Post(
+        path: '/admin/users/{user_id}/reset-password',
+        summary: 'Reset user password',
+        security: [['apiKey' => []]],
+        tags: ['Admin - Users'],
+        parameters: [
+            new OA\Parameter(name: 'user_id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['password'],
+                properties: [
+                    new OA\Property(property: 'password', type: 'string'),
+                ],
+            ),
+        ),
+        responses: [
+            new OA\Response(response: 200, description: 'Password reset', content: new OA\JsonContent(ref: '#/components/schemas/UserResponse')),
+        ],
+    )]
     public function resetPassword(ActorContext $actor, Request $request, string $userId): ApiResponse
     {
         $password = (string) ($request->body['password'] ?? '');

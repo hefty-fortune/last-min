@@ -9,6 +9,7 @@ use App\Common\Http\Request;
 use App\Common\Security\ActorContext;
 use App\Modules\Payments\Application\Service\InitiatePaymentService;
 use App\Platform\Idempotency\IdempotencyExecutor;
+use OpenApi\Attributes as OA;
 
 final class PaymentController
 {
@@ -16,6 +17,29 @@ final class PaymentController
     {
     }
 
+    #[OA\Post(
+        path: '/bookings/{booking_id}/payments/initiate',
+        summary: 'Initiate a payment for a booking',
+        security: [['apiKey' => []]],
+        tags: ['Payments'],
+        parameters: [
+            new OA\Parameter(name: 'booking_id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'Idempotency-Key', in: 'header', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['payment_method_type'],
+                properties: [
+                    new OA\Property(property: 'payment_method_type', type: 'string'),
+                    new OA\Property(property: 'return_url', type: 'string', nullable: true),
+                ],
+            ),
+        ),
+        responses: [
+            new OA\Response(response: 201, description: 'Payment initiated', content: new OA\JsonContent(ref: '#/components/schemas/PaymentInitiatedResponse')),
+        ],
+    )]
     public function initiate(ActorContext $actor, Request $request, string $bookingId): ApiResponse
     {
         $key = $request->header('Idempotency-Key') ?? '';
