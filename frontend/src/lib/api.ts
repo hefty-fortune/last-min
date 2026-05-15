@@ -80,6 +80,12 @@ export const revokeApiKey = (apiKeyId: string) =>
     { method: 'DELETE' },
   );
 
+export const deleteApiKey = (apiKeyId: string) =>
+  request<{ data: { api_key_id: string; deleted: boolean }; meta: Meta }>(
+    `/api-key/${apiKeyId}/destroy`,
+    { method: 'DELETE' },
+  );
+
 // ── Admin: Organizations ──
 
 export const listOrganizations = () =>
@@ -172,6 +178,7 @@ export type ApiKeyEntry = {
   api_key_id: string;
   name: string;
   key_prefix: string;
+  key_plain: string | null;
   created_by: string | null;
   created_at: string;
   revoked_at: string | null;

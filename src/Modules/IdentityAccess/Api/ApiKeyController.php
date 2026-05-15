@@ -43,4 +43,11 @@ final class ApiKeyController
 
         return ApiResponse::ok(['data' => ['api_key_id' => $apiKeyId, 'revoked' => true], 'meta' => ['request_id' => uniqid('req_', true)]]);
     }
+
+    public function destroy(ActorContext $actor, string $apiKeyId): ApiResponse
+    {
+        $this->deleteService->destroy($actor, $apiKeyId);
+
+        return ApiResponse::ok(['data' => ['api_key_id' => $apiKeyId, 'deleted' => true], 'meta' => ['request_id' => uniqid('req_', true)]]);
+    }
 }

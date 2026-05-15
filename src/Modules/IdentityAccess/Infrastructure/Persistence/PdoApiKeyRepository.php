@@ -26,7 +26,7 @@ final class PdoApiKeyRepository implements ApiKeyRepository
         $now = (new \DateTimeImmutable())->format(DATE_ATOM);
         $clientId = 'actor:' . $actorType . ':' . $actorId;
         try {
-            $stmt = $this->pdo->prepare('INSERT INTO api_keys (id, client_id, actor_type, actor_id, actor_roles, key_name, key_hash, key_prefix, created_at, revoked_at, created_by) VALUES (:id, :client_id, :actor_type, :actor_id, :actor_roles, :key_name, :key_hash, :key_prefix, :created_at, NULL, :created_by)');
+            $stmt = $this->pdo->prepare('INSERT INTO api_keys (id, client_id, actor_type, actor_id, actor_roles, key_name, key_hash, key_prefix, key_plain, created_at, revoked_at, created_by) VALUES (:id, :client_id, :actor_type, :actor_id, :actor_roles, :key_name, :key_hash, :key_prefix, :key_plain, :created_at, NULL, :created_by)');
             $stmt->execute([
                 'id' => $id,
                 'client_id' => $clientId,
@@ -36,6 +36,7 @@ final class PdoApiKeyRepository implements ApiKeyRepository
                 'key_name' => $name,
                 'key_hash' => hash('sha256', $plainApiKey),
                 'key_prefix' => substr($plainApiKey, 0, 10),
+                'key_plain' => $plainApiKey,
                 'created_at' => $now,
                 'created_by' => $createdBy,
             ]);
@@ -65,15 +66,24 @@ final class PdoApiKeyRepository implements ApiKeyRepository
         return $stmt->rowCount() > 0;
     }
 
+    public function destroyByApiKeyId(string $apiKeyId): bool
+    {
+        $stmt = $this->pdo->prepare('DELETE FROM api_keys WHERE id = :id');
+        $stmt->execute(['id' => $apiKeyId]);
+
+        return $stmt->rowCount() > 0;
+    }
+
     public function listAll(): array
     {
-        $stmt = $this->pdo->query('SELECT id, key_name, key_prefix, created_by, created_at, revoked_at FROM api_keys ORDER BY created_at ASC');
+        $stmt = $this->pdo->query('SELECT id, key_name, key_prefix, key_plain, created_by, created_at, revoked_at FROM api_keys ORDER BY created_at ASC');
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         return array_map(static fn (array $row): array => [
             'api_key_id' => (string) $row['id'],
             'name' => (string) $row['key_name'],
             'key_prefix' => (string) $row['key_prefix'],
+            'key_plain' => $row['key_plain'] !== null ? (string) $row['key_plain'] : null,
             'created_by' => $row['created_by'] !== null ? (string) $row['created_by'] : null,
             'created_at' => (string) $row['created_at'],
             'revoked_at' => $row['revoked_at'] !== null ? (string) $row['revoked_at'] : null,
