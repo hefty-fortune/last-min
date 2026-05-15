@@ -24,17 +24,15 @@ final class ApiKeyController
     public function create(ActorContext $actor, Request $request): ApiResponse
     {
         $data = $this->createService->create($actor, new CreateApiKeyRequest(
-            clientId: (string) ($request->body['client_id'] ?? ''),
-            name: (string) ($request->body['name'] ?? 'Default API key'),
+            name: (string) ($request->body['name'] ?? ''),
         ));
 
         return ApiResponse::created(['data' => $data, 'meta' => ['request_id' => uniqid('req_', true)]]);
     }
 
-    public function list(ActorContext $actor, Request $request): ApiResponse
+    public function list(ActorContext $actor): ApiResponse
     {
-        $clientId = (string) ($request->attributes['query']['client_id'] ?? '');
-        $data = $this->listService->list($actor, $clientId);
+        $data = $this->listService->list($actor);
 
         return ApiResponse::ok(['data' => $data, 'meta' => ['request_id' => uniqid('req_', true)]]);
     }
@@ -44,5 +42,12 @@ final class ApiKeyController
         $this->deleteService->delete($actor, $apiKeyId);
 
         return ApiResponse::ok(['data' => ['api_key_id' => $apiKeyId, 'revoked' => true], 'meta' => ['request_id' => uniqid('req_', true)]]);
+    }
+
+    public function destroy(ActorContext $actor, string $apiKeyId): ApiResponse
+    {
+        $this->deleteService->destroy($actor, $apiKeyId);
+
+        return ApiResponse::ok(['data' => ['api_key_id' => $apiKeyId, 'deleted' => true], 'meta' => ['request_id' => uniqid('req_', true)]]);
     }
 }
