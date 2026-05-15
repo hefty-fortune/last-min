@@ -20,18 +20,20 @@ final class CreateApiKeyService
     {
         $this->assertAdmin($actor);
 
-        if (!preg_match('/^[a-f0-9-]{36}$/i', $request->clientId)) {
-            throw new ApiException(422, new ApiError('VALIDATION_CLIENT_ID_INVALID', 'client_id must be a UUID string.'));
-        }
         if (trim($request->name) === '') {
             throw new ApiException(422, new ApiError('VALIDATION_REQUIRED_FIELD_MISSING', 'name is required.'));
         }
 
         $token = $this->generateToken();
-        $stored = $this->keys->create($request->clientId, $request->name, $token);
+        $stored = $this->keys->createForActor(
+            $actor->roles[0] ?? 'admin',
+            $actor->actorId,
+            $actor->roles,
+            $request->name,
+            $token,
+        );
 
         return [
-            'client_id' => $stored['client_id'],
             'api_key_id' => $stored['api_key_id'],
             'name' => $stored['name'],
             'api_key' => $token,

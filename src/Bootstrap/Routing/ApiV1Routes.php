@@ -117,7 +117,7 @@ final class ApiV1Routes
 
         $router->add('GET', '/api/v1/api-keys', function (Request $request) use ($apiKeys) {
             $actor = $this->resolver->resolve($request->headers);
-            return $apiKeys->list($actor, $request);
+            return $apiKeys->list($actor);
         });
 
         $router->add('DELETE', '/api/v1/api-key/{api_key_id}', function (Request $request, array $params) use ($apiKeys) {

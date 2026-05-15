@@ -6,12 +6,10 @@ namespace App\Modules\IdentityAccess\Application\Port;
 
 interface ApiKeyRepository
 {
-    public function create(string $clientId, string $name, string $plainApiKey): array;
     /** @param list<string> $roles */
     public function createForActor(string $actorType, string $actorId, array $roles, string $name, string $plainApiKey): array;
-    public function revokeByClientId(string $clientId): bool;
     public function revokeByApiKeyId(string $apiKeyId): bool;
     /** @return list<array<string, mixed>> */
-    public function listByClientId(string $clientId): array;
+    public function listAll(): array;
     public function findActiveByTokenHash(string $tokenHash): ?array;
 }

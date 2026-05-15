@@ -15,15 +15,11 @@ final class ListApiKeysService
     {
     }
 
-    public function list(ActorContext $actor, string $clientId): array
+    public function list(ActorContext $actor): array
     {
         $this->assertAdmin($actor);
 
-        if (!preg_match('/^[a-f0-9-]{36}$/i', $clientId)) {
-            throw new ApiException(422, new ApiError('VALIDATION_CLIENT_ID_INVALID', 'client_id must be a UUID string.'));
-        }
-
-        return $this->keys->listByClientId($clientId);
+        return $this->keys->listAll();
     }
 
     private function assertAdmin(ActorContext $actor): void

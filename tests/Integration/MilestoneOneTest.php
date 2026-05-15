@@ -548,24 +548,22 @@ final class MilestoneOneTest extends TestCase
 
     public function testAdminCanCreateApiKeyAndUseItAsBearerToken(): void
     {
-        $clientId = '8f726eaf-bc9a-4010-a8b8-4ee3f39b7c10';
         $create = $this->router->dispatch(new Request('POST', '/api/v1/api-key', $this->actorHeaders(['admin']), [
-            'client_id' => $clientId,
             'name' => 'Client mobile app',
         ]));
 
         self::assertSame(201, $create->statusCode);
-        self::assertSame($clientId, $create->body['data']['client_id']);
         self::assertArrayHasKey('api_key', $create->body['data']);
         self::assertArrayHasKey('api_key_id', $create->body['data']);
+        self::assertSame('Client mobile app', $create->body['data']['name']);
 
         $me = $this->router->dispatch(new Request('GET', '/api/v1/me', [
             'Authorization' => 'Bearer ' . $create->body['data']['api_key'],
         ], []));
 
         self::assertSame(200, $me->statusCode);
-        self::assertSame($clientId, $me->body['data']['actor_id']);
-        self::assertSame(['client'], $me->body['data']['roles']);
+        self::assertSame('actor-1', $me->body['data']['actor_id']);
+        self::assertSame(['admin'], $me->body['data']['roles']);
     }
 
     public function testAdminBearerTokenCanCallProtectedAdminEndpoint(): void
@@ -581,43 +579,39 @@ final class MilestoneOneTest extends TestCase
         self::assertSame('admin', $created['actor_type']);
     }
 
-    public function testCreateApiKeyFailsValidationWhenClientIdIsInvalid(): void
+    public function testCreateApiKeyFailsValidationWhenNameIsEmpty(): void
     {
         $response = $this->router->dispatch(new Request('POST', '/api/v1/api-key', $this->actorHeaders(['admin']), [
-            'client_id' => 'not-a-uuid',
-            'name' => 'Bad key',
+            'name' => '',
         ]));
 
         self::assertSame(422, $response->statusCode);
-        self::assertSame('VALIDATION_CLIENT_ID_INVALID', $response->body['error']['code']);
+        self::assertSame('VALIDATION_REQUIRED_FIELD_MISSING', $response->body['error']['code']);
     }
 
     public function testGetApiKeysReturnsMetadataOnlyWithoutRawToken(): void
     {
-        $clientId = '2deb6808-3f17-4e98-a5fc-867b44db630f';
         $create = $this->router->dispatch(new Request('POST', '/api/v1/api-key', $this->actorHeaders(['admin']), [
-            'client_id' => $clientId,
             'name' => 'List metadata key',
         ]));
         self::assertSame(201, $create->statusCode);
 
-        $list = $this->router->dispatch(new Request('GET', '/api/v1/api-keys?client_id=' . $clientId, $this->actorHeaders(['admin']), []));
+        $list = $this->router->dispatch(new Request('GET', '/api/v1/api-keys', $this->actorHeaders(['admin']), []));
         self::assertSame(200, $list->statusCode);
-        self::assertCount(1, $list->body['data']);
-        self::assertArrayHasKey('api_key_id', $list->body['data'][0]);
-        self::assertArrayHasKey('name', $list->body['data'][0]);
-        self::assertArrayHasKey('client_id', $list->body['data'][0]);
-        self::assertArrayHasKey('created_at', $list->body['data'][0]);
-        self::assertArrayHasKey('revoked_at', $list->body['data'][0]);
-        self::assertArrayHasKey('is_active', $list->body['data'][0]);
-        self::assertArrayNotHasKey('api_key', $list->body['data'][0]);
+        self::assertGreaterThanOrEqual(1, count($list->body['data']));
+        $item = $list->body['data'][0];
+        self::assertArrayHasKey('api_key_id', $item);
+        self::assertArrayHasKey('name', $item);
+        self::assertArrayHasKey('key_prefix', $item);
+        self::assertArrayHasKey('created_at', $item);
+        self::assertArrayHasKey('revoked_at', $item);
+        self::assertArrayHasKey('is_active', $item);
+        self::assertArrayNotHasKey('api_key', $item);
     }
 
     public function testAdminCanRevokeApiKeyByApiKeyId(): void
     {
-        $clientId = '6e869011-faa2-4df8-89f5-0a7f131fcf01';
         $create = $this->router->dispatch(new Request('POST', '/api/v1/api-key', $this->actorHeaders(['admin']), [
-            'client_id' => $clientId,
             'name' => 'Temporary key',
         ]));
         $plainKey = $create->body['data']['api_key'];
