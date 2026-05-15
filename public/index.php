@@ -10,6 +10,17 @@ use App\Common\Http\Request;
 
 require __DIR__ . '/../vendor/autoload.php';
 
+// Serve API documentation routes (outside the JSON API router)
+$docPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+if ($docPath === '/api/docs' || $docPath === '/api/docs/') {
+    (new \App\Bootstrap\Api\DocsController())->ui();
+    exit;
+}
+if ($docPath === '/api/docs/openapi.json') {
+    (new \App\Bootstrap\Api\DocsController())->spec();
+    exit;
+}
+
 $pdo = DatabaseConnection::fromEnvironment();
 $stripeWebhookSecret = getenv('STRIPE_WEBHOOK_SECRET') ?: 'dev-stripe-webhook-secret';
 
