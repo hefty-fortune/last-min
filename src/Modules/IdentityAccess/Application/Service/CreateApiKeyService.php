@@ -31,6 +31,7 @@ final class CreateApiKeyService
             $actor->roles,
             $request->name,
             $token,
+            $actor->actorId,
         );
 
         return [

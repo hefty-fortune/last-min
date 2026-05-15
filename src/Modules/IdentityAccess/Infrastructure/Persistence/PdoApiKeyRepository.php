@@ -16,7 +16,7 @@ final class PdoApiKeyRepository implements ApiKeyRepository
     {
     }
 
-    public function createForActor(string $actorType, string $actorId, array $roles, string $name, string $plainApiKey): array
+    public function createForActor(string $actorType, string $actorId, array $roles, string $name, string $plainApiKey, ?string $createdBy = null): array
     {
         if ($roles === []) {
             $roles = [$actorType];
@@ -26,7 +26,7 @@ final class PdoApiKeyRepository implements ApiKeyRepository
         $now = (new \DateTimeImmutable())->format(DATE_ATOM);
         $clientId = 'actor:' . $actorType . ':' . $actorId;
         try {
-            $stmt = $this->pdo->prepare('INSERT INTO api_keys (id, client_id, actor_type, actor_id, actor_roles, key_name, key_hash, key_prefix, created_at, revoked_at) VALUES (:id, :client_id, :actor_type, :actor_id, :actor_roles, :key_name, :key_hash, :key_prefix, :created_at, NULL)');
+            $stmt = $this->pdo->prepare('INSERT INTO api_keys (id, client_id, actor_type, actor_id, actor_roles, key_name, key_hash, key_prefix, created_at, revoked_at, created_by) VALUES (:id, :client_id, :actor_type, :actor_id, :actor_roles, :key_name, :key_hash, :key_prefix, :created_at, NULL, :created_by)');
             $stmt->execute([
                 'id' => $id,
                 'client_id' => $clientId,
@@ -37,6 +37,7 @@ final class PdoApiKeyRepository implements ApiKeyRepository
                 'key_hash' => hash('sha256', $plainApiKey),
                 'key_prefix' => substr($plainApiKey, 0, 10),
                 'created_at' => $now,
+                'created_by' => $createdBy,
             ]);
         } catch (PDOException $e) {
             if ($this->isUniqueViolation($e, 'api_keys.client_id, api_keys.key_name')) {
@@ -52,6 +53,7 @@ final class PdoApiKeyRepository implements ApiKeyRepository
             'actor_id' => $actorId,
             'roles' => array_values(array_unique($roles)),
             'name' => $name,
+            'created_by' => $createdBy,
         ];
     }
 
@@ -65,13 +67,14 @@ final class PdoApiKeyRepository implements ApiKeyRepository
 
     public function listAll(): array
     {
-        $stmt = $this->pdo->query('SELECT id, key_name, key_prefix, created_at, revoked_at FROM api_keys ORDER BY created_at ASC');
+        $stmt = $this->pdo->query('SELECT id, key_name, key_prefix, created_by, created_at, revoked_at FROM api_keys ORDER BY created_at ASC');
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         return array_map(static fn (array $row): array => [
             'api_key_id' => (string) $row['id'],
             'name' => (string) $row['key_name'],
             'key_prefix' => (string) $row['key_prefix'],
+            'created_by' => $row['created_by'] !== null ? (string) $row['created_by'] : null,
             'created_at' => (string) $row['created_at'],
             'revoked_at' => $row['revoked_at'] !== null ? (string) $row['revoked_at'] : null,
             'is_active' => $row['revoked_at'] === null,

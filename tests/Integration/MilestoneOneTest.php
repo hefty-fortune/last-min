@@ -603,6 +603,8 @@ final class MilestoneOneTest extends TestCase
         self::assertArrayHasKey('api_key_id', $item);
         self::assertArrayHasKey('name', $item);
         self::assertArrayHasKey('key_prefix', $item);
+        self::assertArrayHasKey('created_by', $item);
+        self::assertSame('actor-1', $item['created_by']);
         self::assertArrayHasKey('created_at', $item);
         self::assertArrayHasKey('revoked_at', $item);
         self::assertArrayHasKey('is_active', $item);
