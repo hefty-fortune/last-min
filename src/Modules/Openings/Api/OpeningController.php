@@ -10,6 +10,7 @@ use App\Common\Security\ActorContext;
 use App\Modules\Openings\Application\Dto\CreateOpeningRequest;
 use App\Modules\Openings\Application\Service\CreateOpeningService;
 use App\Platform\Idempotency\IdempotencyExecutor;
+use OpenApi\Attributes as OA;
 
 final class OpeningController
 {
@@ -17,6 +18,32 @@ final class OpeningController
     {
     }
 
+    #[OA\Post(
+        path: '/providers/{provider_id}/openings',
+        summary: 'Create an opening for a provider',
+        security: [['bearerAuth' => []]],
+        tags: ['Openings'],
+        parameters: [
+            new OA\Parameter(name: 'provider_id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'Idempotency-Key', in: 'header', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['service_offering_id', 'starts_at', 'ends_at'],
+                properties: [
+                    new OA\Property(property: 'service_offering_id', type: 'string'),
+                    new OA\Property(property: 'starts_at', type: 'string', format: 'date-time'),
+                    new OA\Property(property: 'ends_at', type: 'string', format: 'date-time'),
+                    new OA\Property(property: 'price_override', type: 'object'),
+                ],
+            ),
+        ),
+        responses: [
+            new OA\Response(response: 201, description: 'Opening created'),
+            new OA\Response(response: 403, description: 'Forbidden'),
+        ],
+    )]
     public function create(ActorContext $actor, Request $request, string $providerId): ApiResponse
     {
         $key = $request->header('Idempotency-Key') ?? '';

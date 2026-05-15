@@ -10,6 +10,7 @@ use App\Common\Security\ActorContext;
 use App\Modules\Providers\Application\Dto\CreateProviderRequest;
 use App\Modules\Providers\Application\Service\CreateProviderService;
 use App\Platform\Idempotency\IdempotencyExecutor;
+use OpenApi\Attributes as OA;
 
 final class ProviderController
 {
@@ -17,6 +18,27 @@ final class ProviderController
     {
     }
 
+    #[OA\Post(
+        path: '/providers',
+        summary: 'Create a provider (self-service)',
+        security: [['bearerAuth' => []]],
+        tags: ['Providers'],
+        parameters: [
+            new OA\Parameter(name: 'Idempotency-Key', in: 'header', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['provider_type'],
+                properties: [
+                    new OA\Property(property: 'provider_type', type: 'string'),
+                ],
+            ),
+        ),
+        responses: [
+            new OA\Response(response: 201, description: 'Provider created'),
+        ],
+    )]
     public function create(ActorContext $actor, Request $request): ApiResponse
     {
         $idempotencyKey = $request->header('Idempotency-Key') ?? '';

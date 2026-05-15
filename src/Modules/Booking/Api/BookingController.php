@@ -10,6 +10,7 @@ use App\Common\Security\ActorContext;
 use App\Modules\Booking\Application\Dto\CreateBookingRequest;
 use App\Modules\Booking\Application\Service\CreateBookingService;
 use App\Platform\Idempotency\IdempotencyExecutor;
+use OpenApi\Attributes as OA;
 
 final class BookingController
 {
@@ -17,6 +18,28 @@ final class BookingController
     {
     }
 
+    #[OA\Post(
+        path: '/bookings',
+        summary: 'Create a booking',
+        security: [['bearerAuth' => []]],
+        tags: ['Bookings'],
+        parameters: [
+            new OA\Parameter(name: 'Idempotency-Key', in: 'header', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['opening_id'],
+                properties: [
+                    new OA\Property(property: 'opening_id', type: 'string'),
+                    new OA\Property(property: 'client_note', type: 'string', nullable: true),
+                ],
+            ),
+        ),
+        responses: [
+            new OA\Response(response: 201, description: 'Booking created'),
+        ],
+    )]
     public function create(ActorContext $actor, Request $request): ApiResponse
     {
         $key = $request->header('Idempotency-Key') ?? '';
