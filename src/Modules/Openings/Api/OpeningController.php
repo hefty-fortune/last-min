@@ -21,7 +21,7 @@ final class OpeningController
     #[OA\Post(
         path: '/providers/{provider_id}/openings',
         summary: 'Create an opening for a provider',
-        security: [['bearerAuth' => []]],
+        security: [['apiKey' => []]],
         tags: ['Openings'],
         parameters: [
             new OA\Parameter(name: 'provider_id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),

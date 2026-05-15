@@ -18,7 +18,7 @@ final class MeController
     #[OA\Get(
         path: '/me',
         summary: 'Get current authenticated user',
-        security: [['bearerAuth' => []]],
+        security: [['apiKey' => []]],
         tags: ['Auth'],
         responses: [
             new OA\Response(response: 200, description: 'Current user info', content: new OA\JsonContent(ref: '#/components/schemas/MeResponse')),

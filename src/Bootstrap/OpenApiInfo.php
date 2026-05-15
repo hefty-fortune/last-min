@@ -13,10 +13,10 @@ use OpenApi\Attributes as OA;
 )]
 #[OA\Server(url: '/api/v1', description: 'API v1')]
 #[OA\SecurityScheme(
-    securityScheme: 'bearerAuth',
-    type: 'http',
-    scheme: 'bearer',
-    bearerFormat: 'token',
+    securityScheme: 'apiKey',
+    type: 'apiKey',
+    in: 'header',
+    name: 'X-Api-Key',
 )]
 final class OpenApiInfo
 {

@@ -21,7 +21,7 @@ final class BookingController
     #[OA\Post(
         path: '/bookings',
         summary: 'Create a booking',
-        security: [['bearerAuth' => []]],
+        security: [['apiKey' => []]],
         tags: ['Bookings'],
         parameters: [
             new OA\Parameter(name: 'Idempotency-Key', in: 'header', required: true, schema: new OA\Schema(type: 'string')),

@@ -21,7 +21,7 @@ final class ProviderController
     #[OA\Post(
         path: '/providers',
         summary: 'Create a provider (self-service)',
-        security: [['bearerAuth' => []]],
+        security: [['apiKey' => []]],
         tags: ['Providers'],
         parameters: [
             new OA\Parameter(name: 'Idempotency-Key', in: 'header', required: true, schema: new OA\Schema(type: 'string')),

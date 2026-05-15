@@ -25,7 +25,7 @@ final class ApiKeyController
     #[OA\Post(
         path: '/api-key',
         summary: 'Create an API key',
-        security: [['bearerAuth' => []]],
+        security: [['apiKey' => []]],
         tags: ['API Keys'],
         requestBody: new OA\RequestBody(
             required: true,
@@ -53,7 +53,7 @@ final class ApiKeyController
     #[OA\Get(
         path: '/api-keys',
         summary: 'List API keys',
-        security: [['bearerAuth' => []]],
+        security: [['apiKey' => []]],
         tags: ['API Keys'],
         responses: [
             new OA\Response(response: 200, description: 'List of API keys', content: new OA\JsonContent(ref: '#/components/schemas/ApiKeyListResponse')),
@@ -69,7 +69,7 @@ final class ApiKeyController
     #[OA\Delete(
         path: '/api-key/{api_key_id}',
         summary: 'Delete an API key',
-        security: [['bearerAuth' => []]],
+        security: [['apiKey' => []]],
         tags: ['API Keys'],
         parameters: [
             new OA\Parameter(name: 'api_key_id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),

@@ -82,8 +82,10 @@ use OpenApi\Attributes as OA;
     schema: 'ApiKeyItem',
     properties: [
         new OA\Property(property: 'api_key_id', type: 'string'),
-        new OA\Property(property: 'client_id', type: 'string'),
         new OA\Property(property: 'name', type: 'string'),
+        new OA\Property(property: 'key_prefix', type: 'string'),
+        new OA\Property(property: 'key_plain', type: 'string', nullable: true),
+        new OA\Property(property: 'created_by', type: 'string', nullable: true),
         new OA\Property(property: 'created_at', type: 'string', format: 'date-time'),
         new OA\Property(property: 'revoked_at', type: 'string', format: 'date-time', nullable: true),
         new OA\Property(property: 'is_active', type: 'boolean'),

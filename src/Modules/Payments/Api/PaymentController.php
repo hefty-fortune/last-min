@@ -20,7 +20,7 @@ final class PaymentController
     #[OA\Post(
         path: '/bookings/{booking_id}/payments/initiate',
         summary: 'Initiate a payment for a booking',
-        security: [['bearerAuth' => []]],
+        security: [['apiKey' => []]],
         tags: ['Payments'],
         parameters: [
             new OA\Parameter(name: 'booking_id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),

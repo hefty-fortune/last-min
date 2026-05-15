@@ -25,7 +25,7 @@ final class ProviderAdminController
     #[OA\Post(
         path: '/admin/providers',
         summary: 'Create a provider',
-        security: [['bearerAuth' => []]],
+        security: [['apiKey' => []]],
         tags: ['Admin - Providers'],
         requestBody: new OA\RequestBody(
             required: true,
@@ -57,7 +57,7 @@ final class ProviderAdminController
     #[OA\Get(
         path: '/admin/providers',
         summary: 'List providers',
-        security: [['bearerAuth' => []]],
+        security: [['apiKey' => []]],
         tags: ['Admin - Providers'],
         parameters: [
             new OA\Parameter(name: 'organization_id', in: 'query', required: false, schema: new OA\Schema(type: 'string')),
@@ -79,7 +79,7 @@ final class ProviderAdminController
     #[OA\Get(
         path: '/admin/providers/{provider_id}',
         summary: 'Get a provider by ID',
-        security: [['bearerAuth' => []]],
+        security: [['apiKey' => []]],
         tags: ['Admin - Providers'],
         parameters: [
             new OA\Parameter(name: 'provider_id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),

@@ -31,7 +31,7 @@ final class UserAdminController
     #[OA\Post(
         path: '/admin/users',
         summary: 'Create a user',
-        security: [['bearerAuth' => []]],
+        security: [['apiKey' => []]],
         tags: ['Admin - Users'],
         requestBody: new OA\RequestBody(
             required: true,
@@ -75,7 +75,7 @@ final class UserAdminController
     #[OA\Get(
         path: '/admin/users',
         summary: 'List users',
-        security: [['bearerAuth' => []]],
+        security: [['apiKey' => []]],
         tags: ['Admin - Users'],
         parameters: [
             new OA\Parameter(name: 'provider_id', in: 'query', required: false, schema: new OA\Schema(type: 'string')),
@@ -97,7 +97,7 @@ final class UserAdminController
     #[OA\Get(
         path: '/admin/users/{user_id}',
         summary: 'Get a user by ID',
-        security: [['bearerAuth' => []]],
+        security: [['apiKey' => []]],
         tags: ['Admin - Users'],
         parameters: [
             new OA\Parameter(name: 'user_id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
@@ -117,7 +117,7 @@ final class UserAdminController
     #[OA\Patch(
         path: '/admin/users/{user_id}',
         summary: 'Update user details',
-        security: [['bearerAuth' => []]],
+        security: [['apiKey' => []]],
         tags: ['Admin - Users'],
         parameters: [
             new OA\Parameter(name: 'user_id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
@@ -155,7 +155,7 @@ final class UserAdminController
     #[OA\Patch(
         path: '/admin/users/{user_id}/roles',
         summary: 'Update user roles',
-        security: [['bearerAuth' => []]],
+        security: [['apiKey' => []]],
         tags: ['Admin - Users'],
         parameters: [
             new OA\Parameter(name: 'user_id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
@@ -184,7 +184,7 @@ final class UserAdminController
     #[OA\Post(
         path: '/admin/users/{user_id}/reset-password',
         summary: 'Reset user password',
-        security: [['bearerAuth' => []]],
+        security: [['apiKey' => []]],
         tags: ['Admin - Users'],
         parameters: [
             new OA\Parameter(name: 'user_id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),

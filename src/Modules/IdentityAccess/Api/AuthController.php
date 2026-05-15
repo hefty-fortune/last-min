@@ -18,6 +18,7 @@ final class AuthController
     #[OA\Post(
         path: '/auth/login',
         summary: 'Login with email and password',
+        security: [['apiKey' => []]],
         tags: ['Auth'],
         requestBody: new OA\RequestBody(
             required: true,
@@ -47,7 +48,7 @@ final class AuthController
     #[OA\Post(
         path: '/auth/logout',
         summary: 'Logout current session',
-        security: [['bearerAuth' => []]],
+        security: [['apiKey' => []]],
         tags: ['Auth'],
         responses: [
             new OA\Response(response: 200, description: 'Logged out', content: new OA\JsonContent(

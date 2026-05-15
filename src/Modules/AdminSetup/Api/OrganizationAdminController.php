@@ -25,7 +25,7 @@ final class OrganizationAdminController
     #[OA\Post(
         path: '/admin/organizations',
         summary: 'Create an organization',
-        security: [['bearerAuth' => []]],
+        security: [['apiKey' => []]],
         tags: ['Admin - Organizations'],
         requestBody: new OA\RequestBody(
             required: true,
@@ -61,7 +61,7 @@ final class OrganizationAdminController
     #[OA\Get(
         path: '/admin/organizations',
         summary: 'List organizations',
-        security: [['bearerAuth' => []]],
+        security: [['apiKey' => []]],
         tags: ['Admin - Organizations'],
         responses: [
             new OA\Response(response: 200, description: 'List of organizations', content: new OA\JsonContent(ref: '#/components/schemas/OrganizationListResponse')),
@@ -77,7 +77,7 @@ final class OrganizationAdminController
     #[OA\Get(
         path: '/admin/organizations/{organization_id}',
         summary: 'Get an organization by ID',
-        security: [['bearerAuth' => []]],
+        security: [['apiKey' => []]],
         tags: ['Admin - Organizations'],
         parameters: [
             new OA\Parameter(name: 'organization_id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
