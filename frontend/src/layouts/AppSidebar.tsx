@@ -1,4 +1,6 @@
 import { useLocation, Link } from 'react-router-dom';
+import { useTheme } from 'next-themes';
+import { Sun, Moon } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import {
   Sidebar,
@@ -24,6 +26,7 @@ const adminNav = [
 
 export function AppSidebar() {
   const { pathname } = useLocation();
+  const { theme, setTheme } = useTheme();
   const auth = useAuth();
 
   const me = auth.status === 'authenticated' ? auth.me : null;
@@ -63,7 +66,15 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="p-4">
+      <SidebarFooter className="p-4 space-y-2">
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+        >
+          {theme === 'dark' ? <Sun className="size-4 mr-2" /> : <Moon className="size-4 mr-2" />}
+          {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+        </Button>
         <Button
           variant="outline"
           className="w-full"
