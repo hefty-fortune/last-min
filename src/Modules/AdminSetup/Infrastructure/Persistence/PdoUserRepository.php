@@ -32,7 +32,7 @@ final class PdoUserRepository implements UserRepository
                 'last_name' => $user['last_name'],
                 'email' => $user['email'],
                 'phone' => $user['phone'],
-                'password_hash' => null,
+                'password_hash' => $user['password_hash'] ?? null,
                 'status' => 'active',
                 'created_at' => $now,
                 'updated_at' => $now,
@@ -142,6 +142,81 @@ final class PdoUserRepository implements UserRepository
                 'updated_at' => (string) $row['updated_at'],
             ];
         }, $users);
+    }
+
+    public function updateFields(string $userId, array $fields): array
+    {
+        $now = (new \DateTimeImmutable())->format(DATE_ATOM);
+
+        $setClauses = [];
+        $params = ['id' => $userId];
+        foreach ($fields as $column => $value) {
+            $setClauses[] = sprintf('%s = :%s', $column, $column);
+            $params[$column] = $value;
+        }
+        $setClauses[] = 'updated_at = :updated_at';
+        $params['updated_at'] = $now;
+
+        $sql = sprintf('UPDATE users SET %s WHERE id = :id', implode(', ', $setClauses));
+
+        try {
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($params);
+        } catch (PDOException $e) {
+            if ($this->isUniqueViolation($e, ['users.email', 'idx_users_email', 'key (email)'])) {
+                throw new ApiException(409, new ApiError('CONFLICT_USER_EMAIL_EXISTS', 'A user with this email already exists.'));
+            }
+            throw $e;
+        }
+
+        return $this->getById($userId);
+    }
+
+    public function replaceRoles(string $userId, array $roles): array
+    {
+        $now = (new \DateTimeImmutable())->format(DATE_ATOM);
+
+        $this->pdo->beginTransaction();
+        try {
+            $deleteStmt = $this->pdo->prepare('DELETE FROM user_roles WHERE user_id = :user_id');
+            $deleteStmt->execute(['user_id' => $userId]);
+
+            $insertRole = $this->pdo->prepare('INSERT INTO user_roles (id, user_id, role_code, created_at) VALUES (:id, :user_id, :role_code, :created_at)');
+            foreach ($roles as $role) {
+                $insertRole->execute([
+                    'id' => self::uuid(),
+                    'user_id' => $userId,
+                    'role_code' => $role,
+                    'created_at' => $now,
+                ]);
+            }
+
+            $updateStmt = $this->pdo->prepare('UPDATE users SET updated_at = :updated_at WHERE id = :id');
+            $updateStmt->execute(['updated_at' => $now, 'id' => $userId]);
+
+            $this->pdo->commit();
+        } catch (\Throwable $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            throw $e;
+        }
+
+        return $this->getById($userId);
+    }
+
+    public function updatePasswordHash(string $userId, string $passwordHash): array
+    {
+        $now = (new \DateTimeImmutable())->format(DATE_ATOM);
+
+        $stmt = $this->pdo->prepare('UPDATE users SET password_hash = :password_hash, updated_at = :updated_at WHERE id = :id');
+        $stmt->execute([
+            'password_hash' => $passwordHash,
+            'updated_at' => $now,
+            'id' => $userId,
+        ]);
+
+        return $this->getById($userId);
     }
 
     /** @param list<string> $needles */

@@ -24,6 +24,21 @@ services:
         condition: service_healthy
     command: sh -c "php bin/migrate.php && php -S 0.0.0.0:8080 -t public"
 
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: development
+    environment:
+      API_URL: http://backend:8080
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
   postgres:
     image: postgres:16-alpine
     environment:
@@ -39,16 +54,6 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
-
-  # TODO(next prompt): enable FE container wiring once frontend Docker image/service is finalized.
-  # frontend:
-  #   build:
-  #     context: ../frontend
-  #     dockerfile: Dockerfile
-  #   ports:
-  #     - "3000:3000"
-  #   depends_on:
-  #     - backend
 
 volumes:
   postgres_data:
