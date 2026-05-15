@@ -65,12 +65,10 @@ export const logoutUser = () =>
 export const getMe = () =>
   request<{ data: MeResponse; meta: Meta }>('/me');
 
-export const listApiKeys = (clientId?: string) =>
-  request<{ data: ApiKeyEntry[]; meta: Meta }>(
-    `/api-keys${clientId ? `?client_id=${clientId}` : ''}`,
-  );
+export const listApiKeys = () =>
+  request<{ data: ApiKeyEntry[]; meta: Meta }>('/api-keys');
 
-export const createApiKey = (body: { client_id: string; name?: string }) =>
+export const createApiKey = (body: { name: string }) =>
   request<{ data: ApiKeyCreated; meta: Meta }>('/api-key', {
     method: 'POST',
     body: JSON.stringify(body),
@@ -171,12 +169,20 @@ export type MeResponse = {
 };
 
 export type ApiKeyEntry = {
-  client_id: string;
   api_key_id: string;
   name: string;
+  key_prefix: string;
+  created_by: string | null;
+  created_at: string;
+  revoked_at: string | null;
+  is_active: boolean;
 };
 
-export type ApiKeyCreated = ApiKeyEntry & { api_key: string };
+export type ApiKeyCreated = {
+  api_key_id: string;
+  name: string;
+  api_key: string;
+};
 
 export type Organization = {
   organization_id: string;

@@ -26,7 +26,6 @@ import { toast } from 'sonner';
 export default function ApiKeysPage() {
   const [open, setOpen] = useState(false);
   const [created, setCreated] = useState<ApiKeyCreated | null>(null);
-  const [clientId, setClientId] = useState('');
   const [name, setName] = useState('');
   const queryClient = useQueryClient();
 
@@ -41,7 +40,6 @@ export default function ApiKeysPage() {
       queryClient.invalidateQueries({ queryKey: ['api-keys'] });
       setCreated(res.data);
       setOpen(false);
-      setClientId('');
       setName('');
     },
     onError: (e: Error) => toast.error(e.message),
@@ -70,27 +68,16 @@ export default function ApiKeysPage() {
               className="space-y-4"
               onSubmit={(e) => {
                 e.preventDefault();
-                createMutation.mutate({
-                  client_id: clientId,
-                  ...(name ? { name } : {}),
-                });
+                createMutation.mutate({ name });
               }}
             >
               <div className="space-y-2">
-                <Label>Client ID (UUID)</Label>
-                <Input
-                  value={clientId}
-                  onChange={(e) => setClientId(e.target.value)}
-                  placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Name (optional)</Label>
+                <Label>Name</Label>
                 <Input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="My API key"
+                  required
                 />
               </div>
               <Button type="submit" className="w-full" disabled={createMutation.isPending}>
@@ -146,8 +133,10 @@ export default function ApiKeysPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
-                  <TableHead>API Key ID</TableHead>
-                  <TableHead>Client ID</TableHead>
+                  <TableHead>Key Prefix</TableHead>
+                  <TableHead>Created By</TableHead>
+                  <TableHead>Created At</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead />
                 </TableRow>
               </TableHeader>
@@ -155,17 +144,29 @@ export default function ApiKeysPage() {
                 {data.map((key) => (
                   <TableRow key={key.api_key_id}>
                     <TableCell className="font-medium">{key.name}</TableCell>
-                    <TableCell className="font-mono text-xs">{key.api_key_id}</TableCell>
-                    <TableCell className="font-mono text-xs">{key.client_id}</TableCell>
+                    <TableCell className="font-mono text-xs">{key.key_prefix}...</TableCell>
+                    <TableCell className="text-xs">{key.created_by ?? '—'}</TableCell>
+                    <TableCell className="text-xs">
+                      {new Date(key.created_at).toLocaleDateString()}
+                    </TableCell>
                     <TableCell>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        disabled={revokeMutation.isPending}
-                        onClick={() => revokeMutation.mutate(key.api_key_id)}
-                      >
-                        Revoke
-                      </Button>
+                      {key.is_active ? (
+                        <span className="text-green-600 text-xs font-medium">Active</span>
+                      ) : (
+                        <span className="text-red-600 text-xs font-medium">Revoked</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {key.is_active && (
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          disabled={revokeMutation.isPending}
+                          onClick={() => revokeMutation.mutate(key.api_key_id)}
+                        >
+                          Revoke
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
