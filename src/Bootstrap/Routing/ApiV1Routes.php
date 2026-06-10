@@ -18,6 +18,7 @@ use App\Modules\Openings\Api\OpeningController;
 use App\Modules\Payments\Api\PaymentController;
 use App\Modules\Providers\Api\ProviderController;
 use App\Modules\Refunds\Api\RefundController;
+use App\Modules\ServiceCatalog\Api\OfferingController;
 use App\Platform\Webhooks\Stripe\StripeWebhookController;
 
 final class ApiV1Routes
@@ -41,6 +42,7 @@ final class ApiV1Routes
         BookingController $bookings,
         PaymentController $payments,
         RefundController $refunds,
+        OfferingController $offerings,
         StripeWebhookController $stripeWebhook,
     ): void {
         $router->add('POST', '/api/v1/auth/login', function (Request $request) use ($auth) {
@@ -140,6 +142,25 @@ final class ApiV1Routes
         $router->add('POST', '/api/v1/providers', function (Request $request) use ($providers) {
             $actor = $this->resolver->resolve($request->headers);
             return $providers->create($actor, $request);
+        });
+
+        $router->add('POST', '/api/v1/providers/{provider_id}/offerings', function (Request $request, array $params) use ($offerings) {
+            $actor = $this->resolver->resolve($request->headers);
+            return $offerings->create($actor, $request, $params['provider_id']);
+        });
+
+        $router->add('GET', '/api/v1/providers/{provider_id}/offerings', function (Request $request, array $params) use ($offerings) {
+            $actor = $this->resolver->resolve($request->headers);
+            return $offerings->list($actor, $request, $params['provider_id']);
+        });
+
+        $router->add('PATCH', '/api/v1/providers/{provider_id}/offerings/{offering_id}', function (Request $request, array $params) use ($offerings) {
+            $actor = $this->resolver->resolve($request->headers);
+            return $offerings->update($actor, $request, $params['provider_id'], $params['offering_id']);
+        });
+
+        $router->add('GET', '/api/v1/public/providers/{provider_id}/offerings', function (Request $request, array $params) use ($offerings) {
+            return $offerings->listPublic($request, $params['provider_id']);
         });
 
         $router->add('POST', '/api/v1/providers/{provider_id}/openings', function (Request $request, array $params) use ($openings) {

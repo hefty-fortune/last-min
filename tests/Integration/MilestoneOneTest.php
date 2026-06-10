@@ -64,6 +64,12 @@ use App\Modules\Refunds\Application\Service\ApproveRefundService;
 use App\Modules\Refunds\Application\Service\ListBookingRefundsService;
 use App\Modules\Refunds\Application\Service\RequestRefundService;
 use App\Modules\Refunds\Infrastructure\Persistence\PdoRefundRepository;
+use App\Modules\ServiceCatalog\Api\OfferingController;
+use App\Modules\ServiceCatalog\Application\Service\CreateOfferingService;
+use App\Modules\ServiceCatalog\Application\Service\ListOfferingsService;
+use App\Modules\ServiceCatalog\Application\Service\OfferingAccessService;
+use App\Modules\ServiceCatalog\Application\Service\UpdateOfferingService;
+use App\Modules\ServiceCatalog\Infrastructure\Persistence\PdoOfferingRepository;
 use App\Platform\Idempotency\IdempotencyExecutor;
 use App\Platform\Idempotency\PdoIdempotencyStore;
 use App\Platform\Integrations\Stripe\StubStripeGateway;
@@ -155,6 +161,12 @@ final class MilestoneOneTest extends TestCase
             new RefundController(
                 new ListBookingRefundsService(new PdoRefundRepository($this->pdo), new PdoBookingRepository($this->pdo), $providerRepository),
                 new ApproveRefundService(new PdoRefundRepository($this->pdo)),
+                $idempotency
+            ),
+            new OfferingController(
+                new CreateOfferingService(new PdoOfferingRepository($this->pdo), new OfferingAccessService($providerRepository)),
+                new ListOfferingsService(new PdoOfferingRepository($this->pdo), new OfferingAccessService($providerRepository)),
+                new UpdateOfferingService(new PdoOfferingRepository($this->pdo), new OfferingAccessService($providerRepository)),
                 $idempotency
             ),
             new StripeWebhookController(new StripeSignatureVerifier('test_webhook_secret'), new PdoStripeWebhookEventRepository($this->pdo), new StripeWebhookDispatcher()),
@@ -525,6 +537,101 @@ final class MilestoneOneTest extends TestCase
         $response = $this->router->dispatch(new Request('GET', "/api/v1/bookings/$bookingId/refunds", $otherHeaders, []));
         self::assertSame(403, $response->statusCode);
         self::assertSame('FORBIDDEN_REFUND_SCOPE', $response->body['error']['code']);
+    }
+
+    public function testProviderCanCreateAndListOfferings(): void
+    {
+        $headers = $this->actorHeaders(['provider']);
+        $headers['Idempotency-Key'] = 'idem-offering-create-1';
+        $request = new Request('POST', '/api/v1/providers/provider-1/offerings', $headers, [
+            'name' => 'Massage - 45 min',
+            'description' => 'Relaxing massage',
+            'duration_minutes' => 45,
+            'base_price' => ['currency' => 'eur', 'amount_minor' => 3500],
+        ]);
+
+        $first = $this->router->dispatch($request);
+        self::assertSame(201, $first->statusCode);
+        self::assertSame('Massage - 45 min', $first->body['data']['name']);
+        self::assertSame('active', $first->body['data']['status']);
+        self::assertSame(['currency' => 'EUR', 'amount_minor' => 3500], $first->body['data']['base_price']);
+
+        $second = $this->router->dispatch($request);
+        self::assertSame(201, $second->statusCode);
+        self::assertTrue($second->body['meta']['idempotency_replayed']);
+
+        $list = $this->router->dispatch(new Request('GET', '/api/v1/providers/provider-1/offerings', $this->actorHeaders(['provider']), []));
+        self::assertSame(200, $list->statusCode);
+        self::assertCount(2, $list->body['data']);
+    }
+
+    public function testOfferingCreationValidation(): void
+    {
+        $headers = $this->actorHeaders(['provider']);
+        $headers['Idempotency-Key'] = 'idem-offering-invalid-1';
+        $shortDuration = $this->router->dispatch(new Request('POST', '/api/v1/providers/provider-1/offerings', $headers, [
+            'name' => 'Too short',
+            'duration_minutes' => 3,
+            'base_price' => ['currency' => 'EUR', 'amount_minor' => 1000],
+        ]));
+        self::assertSame(422, $shortDuration->statusCode);
+        self::assertSame('VALIDATION_DURATION_INVALID', $shortDuration->body['error']['code']);
+
+        $headers['Idempotency-Key'] = 'idem-offering-invalid-2';
+        $badPrice = $this->router->dispatch(new Request('POST', '/api/v1/providers/provider-1/offerings', $headers, [
+            'name' => 'Bad price',
+            'duration_minutes' => 30,
+            'base_price' => ['amount_minor' => 1000],
+        ]));
+        self::assertSame(422, $badPrice->statusCode);
+        self::assertSame('VALIDATION_PRICE_INVALID', $badPrice->body['error']['code']);
+    }
+
+    public function testProviderCanUpdateOffering(): void
+    {
+        $response = $this->router->dispatch(new Request('PATCH', '/api/v1/providers/provider-1/offerings/offering-1', $this->actorHeaders(['provider']), [
+            'name' => 'Haircut deluxe',
+            'base_price' => ['currency' => 'EUR', 'amount_minor' => 2700],
+            'status' => 'inactive',
+        ]));
+
+        self::assertSame(200, $response->statusCode);
+        self::assertSame('Haircut deluxe', $response->body['data']['name']);
+        self::assertSame('inactive', $response->body['data']['status']);
+        self::assertSame(['currency' => 'EUR', 'amount_minor' => 2700], $response->body['data']['base_price']);
+
+        $missing = $this->router->dispatch(new Request('PATCH', '/api/v1/providers/provider-1/offerings/missing-offering', $this->actorHeaders(['provider']), ['name' => 'X']));
+        self::assertSame(404, $missing->statusCode);
+        self::assertSame('OFFERING_NOT_FOUND', $missing->body['error']['code']);
+    }
+
+    public function testPublicOfferingsListShowsOnlyActive(): void
+    {
+        $deactivate = $this->router->dispatch(new Request('PATCH', '/api/v1/providers/provider-1/offerings/offering-1', $this->actorHeaders(['provider']), ['status' => 'inactive']));
+        self::assertSame(200, $deactivate->statusCode);
+
+        $response = $this->router->dispatch(new Request('GET', '/api/v1/public/providers/provider-1/offerings', [], []));
+        self::assertSame(200, $response->statusCode);
+        self::assertCount(0, $response->body['data']);
+    }
+
+    public function testOfferingManagementDeniedForUnrelatedProvider(): void
+    {
+        $otherHeaders = [
+            'X-Actor-Id' => 'actor-2',
+            'X-Actor-Subject' => 'sso|user_2',
+            'X-Actor-Roles' => 'provider',
+            'X-User-Profile-Id' => 'profile-client-2',
+            'Idempotency-Key' => 'idem-offering-denied-1',
+        ];
+        $response = $this->router->dispatch(new Request('POST', '/api/v1/providers/provider-1/offerings', $otherHeaders, [
+            'name' => 'Not mine',
+            'duration_minutes' => 30,
+            'base_price' => ['currency' => 'EUR', 'amount_minor' => 1000],
+        ]));
+
+        self::assertSame(403, $response->statusCode);
+        self::assertSame('FORBIDDEN_PROVIDER_ACCESS', $response->body['error']['code']);
     }
 
     public function testClientCanListOwnBookings(): void

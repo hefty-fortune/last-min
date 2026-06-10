@@ -66,6 +66,12 @@ use App\Modules\Refunds\Application\Service\ApproveRefundService;
 use App\Modules\Refunds\Application\Service\ListBookingRefundsService;
 use App\Modules\Refunds\Application\Service\RequestRefundService;
 use App\Modules\Refunds\Infrastructure\Persistence\PdoRefundRepository;
+use App\Modules\ServiceCatalog\Api\OfferingController;
+use App\Modules\ServiceCatalog\Application\Service\CreateOfferingService;
+use App\Modules\ServiceCatalog\Application\Service\ListOfferingsService;
+use App\Modules\ServiceCatalog\Application\Service\OfferingAccessService;
+use App\Modules\ServiceCatalog\Application\Service\UpdateOfferingService;
+use App\Modules\ServiceCatalog\Infrastructure\Persistence\PdoOfferingRepository;
 use App\Platform\Idempotency\IdempotencyExecutor;
 use App\Platform\Idempotency\PdoIdempotencyStore;
 use App\Platform\Integrations\Stripe\StubStripeGateway;
@@ -148,6 +154,12 @@ final class AppKernel
             new RefundController(
                 new ListBookingRefundsService(new PdoRefundRepository($pdo), new PdoBookingRepository($pdo), $providerRepository),
                 new ApproveRefundService(new PdoRefundRepository($pdo)),
+                $idempotency
+            ),
+            new OfferingController(
+                new CreateOfferingService(new PdoOfferingRepository($pdo), new OfferingAccessService($providerRepository)),
+                new ListOfferingsService(new PdoOfferingRepository($pdo), new OfferingAccessService($providerRepository)),
+                new UpdateOfferingService(new PdoOfferingRepository($pdo), new OfferingAccessService($providerRepository)),
                 $idempotency
             ),
             new StripeWebhookController(new StripeSignatureVerifier($stripeWebhookSecret), new PdoStripeWebhookEventRepository($pdo), new StripeWebhookDispatcher()),
