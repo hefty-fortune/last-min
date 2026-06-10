@@ -52,6 +52,7 @@ use App\Modules\Openings\Application\Service\OpeningAccessService;
 use App\Modules\Openings\Application\Service\PublishOpeningService;
 use App\Modules\Openings\Infrastructure\Persistence\PdoOpeningRepository;
 use App\Modules\Payments\Api\PaymentController;
+use App\Modules\Payments\Application\Service\GetPaymentService;
 use App\Modules\Payments\Application\Service\InitiatePaymentService;
 use App\Modules\Payments\Infrastructure\Persistence\PdoPaymentRepository;
 use App\Modules\Providers\Api\ProviderController;
@@ -134,7 +135,11 @@ final class MilestoneOneTest extends TestCase
                 new ListMyBookingsService(new PdoBookingRepository($this->pdo)),
                 $idempotency
             ),
-            new PaymentController(new InitiatePaymentService(new PdoBookingRepository($this->pdo), new PdoPaymentRepository($this->pdo), new StubStripeGateway()), $idempotency),
+            new PaymentController(
+                new InitiatePaymentService(new PdoBookingRepository($this->pdo), new PdoPaymentRepository($this->pdo), new StubStripeGateway()),
+                new GetPaymentService(new PdoPaymentRepository($this->pdo), $providerRepository),
+                $idempotency
+            ),
             new StripeWebhookController(new StripeSignatureVerifier('test_webhook_secret'), new PdoStripeWebhookEventRepository($this->pdo), new StripeWebhookDispatcher()),
         );
     }
@@ -286,6 +291,64 @@ final class MilestoneOneTest extends TestCase
         $response = $this->router->dispatch(new Request('GET', '/api/v1/bookings/missing-booking', $this->actorHeaders(['client']), []));
         self::assertSame(404, $response->statusCode);
         self::assertSame('BOOKING_NOT_FOUND', $response->body['error']['code']);
+    }
+
+    public function testClientCanReadOwnPaymentStatus(): void
+    {
+        $headers = $this->actorHeaders(['client']);
+        $headers['Idempotency-Key'] = 'idem-payment-read-1';
+        $created = $this->router->dispatch(new Request('POST', '/api/v1/bookings', $headers, ['opening_id' => 'opening-1']));
+        $bookingId = $created->body['data']['booking_id'];
+
+        $payHeaders = $this->actorHeaders(['client']);
+        $payHeaders['Idempotency-Key'] = 'idem-payment-read-pay-1';
+        $payment = $this->router->dispatch(new Request('POST', "/api/v1/bookings/$bookingId/payments/initiate", $payHeaders, ['payment_method_type' => 'card']));
+        $paymentId = $payment->body['data']['payment_id'];
+
+        $response = $this->router->dispatch(new Request('GET', "/api/v1/payments/$paymentId", $this->actorHeaders(['client']), []));
+        self::assertSame(200, $response->statusCode);
+        self::assertSame($paymentId, $response->body['data']['payment_id']);
+        self::assertSame($bookingId, $response->body['data']['booking_id']);
+        self::assertSame('initiated', $response->body['data']['state']);
+        self::assertSame(['currency' => 'EUR', 'amount_minor' => 2200], $response->body['data']['amount']);
+        self::assertNotNull($response->body['data']['stripe_payment_intent_id']);
+
+        $scoped = $this->router->dispatch(new Request('GET', "/api/v1/bookings/$bookingId/payments/$paymentId", $this->actorHeaders(['client']), []));
+        self::assertSame(200, $scoped->statusCode);
+        self::assertSame($paymentId, $scoped->body['data']['payment_id']);
+
+        $wrongBooking = $this->router->dispatch(new Request('GET', "/api/v1/bookings/other-booking/payments/$paymentId", $this->actorHeaders(['client']), []));
+        self::assertSame(404, $wrongBooking->statusCode);
+        self::assertSame('PAYMENT_NOT_FOUND', $wrongBooking->body['error']['code']);
+    }
+
+    public function testPaymentReadDeniedForUnrelatedActor(): void
+    {
+        $headers = $this->actorHeaders(['client']);
+        $headers['Idempotency-Key'] = 'idem-payment-read-2';
+        $created = $this->router->dispatch(new Request('POST', '/api/v1/bookings', $headers, ['opening_id' => 'opening-1']));
+        $bookingId = $created->body['data']['booking_id'];
+
+        $payHeaders = $this->actorHeaders(['client']);
+        $payHeaders['Idempotency-Key'] = 'idem-payment-read-pay-2';
+        $payment = $this->router->dispatch(new Request('POST', "/api/v1/bookings/$bookingId/payments/initiate", $payHeaders, ['payment_method_type' => 'card']));
+        $paymentId = $payment->body['data']['payment_id'];
+
+        $otherHeaders = [
+            'X-Actor-Id' => 'actor-2',
+            'X-Actor-Subject' => 'sso|user_2',
+            'X-Actor-Roles' => 'client',
+            'X-User-Profile-Id' => 'profile-client-2',
+        ];
+        $denied = $this->router->dispatch(new Request('GET', "/api/v1/payments/$paymentId", $otherHeaders, []));
+        self::assertSame(403, $denied->statusCode);
+        self::assertSame('FORBIDDEN_PAYMENT_SCOPE', $denied->body['error']['code']);
+
+        $admin = $this->router->dispatch(new Request('GET', "/api/v1/payments/$paymentId", $this->actorHeaders(['admin']), []));
+        self::assertSame(200, $admin->statusCode);
+
+        $missing = $this->router->dispatch(new Request('GET', '/api/v1/payments/missing-payment', $this->actorHeaders(['client']), []));
+        self::assertSame(404, $missing->statusCode);
     }
 
     public function testClientCanListOwnBookings(): void

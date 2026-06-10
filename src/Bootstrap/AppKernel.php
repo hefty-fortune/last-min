@@ -54,6 +54,7 @@ use App\Modules\Openings\Application\Service\OpeningAccessService;
 use App\Modules\Openings\Application\Service\PublishOpeningService;
 use App\Modules\Openings\Infrastructure\Persistence\PdoOpeningRepository;
 use App\Modules\Payments\Api\PaymentController;
+use App\Modules\Payments\Application\Service\GetPaymentService;
 use App\Modules\Payments\Application\Service\InitiatePaymentService;
 use App\Modules\Payments\Infrastructure\Persistence\PdoPaymentRepository;
 use App\Modules\Providers\Api\ProviderController;
@@ -127,7 +128,11 @@ final class AppKernel
                 new ListMyBookingsService(new PdoBookingRepository($pdo)),
                 $idempotency
             ),
-            new PaymentController(new InitiatePaymentService(new PdoBookingRepository($pdo), new PdoPaymentRepository($pdo), new StubStripeGateway()), $idempotency),
+            new PaymentController(
+                new InitiatePaymentService(new PdoBookingRepository($pdo), new PdoPaymentRepository($pdo), new StubStripeGateway()),
+                new GetPaymentService(new PdoPaymentRepository($pdo), $providerRepository),
+                $idempotency
+            ),
             new StripeWebhookController(new StripeSignatureVerifier($stripeWebhookSecret), new PdoStripeWebhookEventRepository($pdo), new StripeWebhookDispatcher()),
         );
 

@@ -8,6 +8,9 @@ interface PaymentRepository
 {
     public function findByBookingId(string $bookingId): ?array;
 
+    /** @return array<string, mixed>|null */
+    public function findById(string $paymentId): ?array;
+
     public function createInitiated(array $payment): array;
 
     public function attachStripeIntent(string $paymentId, string $intentId): void;

@@ -21,6 +21,14 @@ final class PdoPaymentRepository implements PaymentRepository
         return $row === false ? null : $row;
     }
 
+    public function findById(string $paymentId): ?array
+    {
+        $stmt = $this->pdo->prepare('SELECT * FROM payments WHERE id = :id LIMIT 1');
+        $stmt->execute(['id' => $paymentId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row === false ? null : $row;
+    }
+
     public function createInitiated(array $payment): array
     {
         $id = self::uuid();

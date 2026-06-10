@@ -189,6 +189,16 @@ final class ApiV1Routes
             return $payments->initiate($actor, $request, $params['booking_id']);
         });
 
+        $router->add('GET', '/api/v1/payments/{payment_id}', function (Request $request, array $params) use ($payments) {
+            $actor = $this->resolver->resolve($request->headers);
+            return $payments->get($actor, $params['payment_id']);
+        });
+
+        $router->add('GET', '/api/v1/bookings/{booking_id}/payments/{payment_id}', function (Request $request, array $params) use ($payments) {
+            $actor = $this->resolver->resolve($request->headers);
+            return $payments->getForBooking($actor, $params['booking_id'], $params['payment_id']);
+        });
+
         $router->add('POST', '/api/v1/webhooks/stripe', fn (Request $request) => $stripeWebhook->ingest($request));
     }
 }
