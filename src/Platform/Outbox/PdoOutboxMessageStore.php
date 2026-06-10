@@ -31,19 +31,41 @@ final class PdoOutboxMessageStore implements OutboxMessageStore
 
     public function claimPending(int $limit): array
     {
-        $stmt = $this->pdo->prepare("SELECT * FROM outbox_messages WHERE status = 'pending' AND available_at <= :now ORDER BY available_at ASC LIMIT :limit");
-        $stmt->bindValue(':now', (new \DateTimeImmutable())->format(DATE_ATOM));
-        $stmt->bindValue(':limit', max(1, min($limit, 100)), PDO::PARAM_INT);
-        $stmt->execute();
+        $safeLimit = max(1, min($limit, 100));
+        $now = (new \DateTimeImmutable())->format(DATE_ATOM);
 
-        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $select = $this->pdo->prepare("SELECT id FROM outbox_messages WHERE status = 'pending' AND available_at <= :now ORDER BY available_at ASC LIMIT :limit");
+        $select->bindValue(':now', $now);
+        $select->bindValue(':limit', $safeLimit, PDO::PARAM_INT);
+        $select->execute();
+        $candidateIds = $select->fetchAll(PDO::FETCH_COLUMN);
 
-        return array_map(static fn (array $row): array => [
-            'message_id' => $row['id'],
-            'message_type' => $row['message_type'],
-            'payload' => json_decode((string) $row['payload'], true, 512, JSON_THROW_ON_ERROR),
-            'attempts' => (int) $row['attempts'],
-        ], $rows);
+        // Claim each candidate atomically: the conditional UPDATE only succeeds
+        // for the worker that flips it out of 'pending', so two concurrent
+        // drains never hand the same message to two handlers (no double dispatch).
+        $claim = $this->pdo->prepare("UPDATE outbox_messages SET status = 'processing' WHERE id = :id AND status = 'pending'");
+        $load = $this->pdo->prepare('SELECT * FROM outbox_messages WHERE id = :id LIMIT 1');
+
+        $claimed = [];
+        foreach ($candidateIds as $id) {
+            $claim->execute(['id' => $id]);
+            if ($claim->rowCount() !== 1) {
+                continue; // lost the race to another worker
+            }
+            $load->execute(['id' => $id]);
+            $row = $load->fetch(PDO::FETCH_ASSOC);
+            if ($row === false) {
+                continue;
+            }
+            $claimed[] = [
+                'message_id' => $row['id'],
+                'message_type' => $row['message_type'],
+                'payload' => json_decode((string) $row['payload'], true, 512, JSON_THROW_ON_ERROR),
+                'attempts' => (int) $row['attempts'],
+            ];
+        }
+
+        return $claimed;
     }
 
     public function markDispatched(string $messageId): void
@@ -60,7 +82,8 @@ final class PdoOutboxMessageStore implements OutboxMessageStore
 
     public function recordAttemptFailure(string $messageId, string $error): void
     {
-        $stmt = $this->pdo->prepare('UPDATE outbox_messages SET attempts = attempts + 1, last_error = :error WHERE id = :id');
+        // Return the message to 'pending' so a later drain re-claims and retries it.
+        $stmt = $this->pdo->prepare("UPDATE outbox_messages SET status = 'pending', attempts = attempts + 1, last_error = :error WHERE id = :id");
         $stmt->execute(['id' => $messageId, 'error' => $error]);
     }
 
