@@ -184,6 +184,16 @@ final class ApiV1Routes
             return $bookings->listMine($actor, $request);
         });
 
+        $router->add('POST', '/api/v1/bookings/{booking_id}:mark-provider-no-show', function (Request $request, array $params) use ($bookings) {
+            $actor = $this->resolver->resolve($request->headers);
+            return $bookings->markProviderNoShow($actor, $request, $params['booking_id']);
+        });
+
+        $router->add('POST', '/api/v1/bookings/{booking_id}:mark-client-no-show', function (Request $request, array $params) use ($bookings) {
+            $actor = $this->resolver->resolve($request->headers);
+            return $bookings->markClientNoShow($actor, $request, $params['booking_id']);
+        });
+
         $router->add('POST', '/api/v1/bookings/{booking_id}/payments/initiate', function (Request $request, array $params) use ($payments) {
             $actor = $this->resolver->resolve($request->headers);
             return $payments->initiate($actor, $request, $params['booking_id']);

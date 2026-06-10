@@ -63,6 +63,37 @@ final class PdoBookingRepository implements BookingRepository
         return $row === null ? null : $this->mapBooking($row);
     }
 
+    public function lockById(string $bookingId): ?array
+    {
+        $sql = 'SELECT * FROM bookings WHERE id = :id';
+        if ($this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME) !== 'sqlite') {
+            $sql .= ' FOR UPDATE';
+        }
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute(['id' => $bookingId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row === false ? null : $row;
+    }
+
+    public function markNoShow(string $bookingId, string $noShowActor, string $state): array
+    {
+        $now = (new \DateTimeImmutable())->format(DATE_ATOM);
+        $stmt = $this->pdo->prepare('UPDATE bookings SET state = :state, no_show_actor = :no_show_actor, no_show_recorded_at = :recorded_at, updated_at = :updated_at WHERE id = :id');
+        $stmt->execute([
+            'id' => $bookingId,
+            'state' => $state,
+            'no_show_actor' => $noShowActor,
+            'recorded_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        $detail = $this->findDetailById($bookingId);
+        assert($detail !== null);
+
+        return $detail;
+    }
+
     public function listByClientProfileId(string $clientProfileId, ?string $state, int $limit): array
     {
         $safeLimit = max(1, min($limit, 100));

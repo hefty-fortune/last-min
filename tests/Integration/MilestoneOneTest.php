@@ -30,6 +30,7 @@ use App\Modules\Booking\Api\BookingController;
 use App\Modules\Booking\Application\Service\CreateBookingService;
 use App\Modules\Booking\Application\Service\GetBookingService;
 use App\Modules\Booking\Application\Service\ListMyBookingsService;
+use App\Modules\Booking\Application\Service\MarkNoShowService;
 use App\Modules\Booking\Infrastructure\Persistence\PdoBookingRepository;
 use App\Modules\IdentityAccess\Api\ApiKeyController;
 use App\Modules\IdentityAccess\Api\AuthController;
@@ -133,6 +134,7 @@ final class MilestoneOneTest extends TestCase
                 new CreateBookingService($tx, $openingRepository, new PdoBookingRepository($this->pdo)),
                 new GetBookingService(new PdoBookingRepository($this->pdo), new PdoPaymentRepository($this->pdo), $providerRepository),
                 new ListMyBookingsService(new PdoBookingRepository($this->pdo)),
+                new MarkNoShowService($tx, new PdoBookingRepository($this->pdo), $providerRepository),
                 $idempotency
             ),
             new PaymentController(
@@ -349,6 +351,65 @@ final class MilestoneOneTest extends TestCase
 
         $missing = $this->router->dispatch(new Request('GET', '/api/v1/payments/missing-payment', $this->actorHeaders(['client']), []));
         self::assertSame(404, $missing->statusCode);
+    }
+
+    public function testProviderCanMarkProviderNoShowIdempotently(): void
+    {
+        $bookingId = $this->seedConfirmedBooking('booking-noshow-1');
+
+        $headers = $this->actorHeaders(['provider']);
+        $headers['Idempotency-Key'] = 'idem-noshow-provider-1';
+        $request = new Request('POST', "/api/v1/bookings/$bookingId:mark-provider-no-show", $headers, []);
+
+        $first = $this->router->dispatch($request);
+        self::assertSame(200, $first->statusCode);
+        self::assertSame('provider_no_show', $first->body['data']['state']);
+        self::assertSame('provider', $first->body['data']['no_show_actor']);
+        self::assertNotNull($first->body['data']['no_show_recorded_at']);
+
+        $second = $this->router->dispatch($request);
+        self::assertSame(200, $second->statusCode);
+        self::assertTrue($second->body['meta']['idempotency_replayed']);
+    }
+
+    public function testAdminCanMarkClientNoShow(): void
+    {
+        $bookingId = $this->seedConfirmedBooking('booking-noshow-2');
+
+        $headers = $this->actorHeaders(['admin']);
+        $headers['Idempotency-Key'] = 'idem-noshow-client-1';
+        $response = $this->router->dispatch(new Request('POST', "/api/v1/bookings/$bookingId:mark-client-no-show", $headers, []));
+
+        self::assertSame(200, $response->statusCode);
+        self::assertSame('client_no_show', $response->body['data']['state']);
+        self::assertSame('client', $response->body['data']['no_show_actor']);
+    }
+
+    public function testNoShowRejectedForNonConfirmedBooking(): void
+    {
+        $headers = $this->actorHeaders(['client']);
+        $headers['Idempotency-Key'] = 'idem-noshow-reserved-1';
+        $created = $this->router->dispatch(new Request('POST', '/api/v1/bookings', $headers, ['opening_id' => 'opening-1']));
+        $bookingId = $created->body['data']['booking_id'];
+
+        $markHeaders = $this->actorHeaders(['provider']);
+        $markHeaders['Idempotency-Key'] = 'idem-noshow-reserved-2';
+        $response = $this->router->dispatch(new Request('POST', "/api/v1/bookings/$bookingId:mark-provider-no-show", $markHeaders, []));
+
+        self::assertSame(409, $response->statusCode);
+        self::assertSame('BOOKING_STATE_INVALID', $response->body['error']['code']);
+    }
+
+    public function testNoShowDeniedForClientRole(): void
+    {
+        $bookingId = $this->seedConfirmedBooking('booking-noshow-3');
+
+        $headers = $this->actorHeaders(['client']);
+        $headers['Idempotency-Key'] = 'idem-noshow-denied-1';
+        $response = $this->router->dispatch(new Request('POST', "/api/v1/bookings/$bookingId:mark-client-no-show", $headers, []));
+
+        self::assertSame(403, $response->statusCode);
+        self::assertSame('FORBIDDEN_ROLE_MISSING', $response->body['error']['code']);
     }
 
     public function testClientCanListOwnBookings(): void
@@ -877,6 +938,14 @@ final class MilestoneOneTest extends TestCase
             'X-Actor-Roles' => implode(',', $roles),
             'X-User-Profile-Id' => 'profile-client-1',
         ];
+    }
+
+    private function seedConfirmedBooking(string $bookingId): string
+    {
+        $now = (new \DateTimeImmutable('2026-03-26T10:05:00Z'))->format(DATE_ATOM);
+        $this->pdo->exec("INSERT INTO bookings (id, opening_id, provider_id, client_user_profile_id, state, reservation_expires_at, payment_required_amount, payment_currency, confirmed_at, created_at, updated_at) VALUES ('$bookingId', 'opening-1', 'provider-1', 'profile-client-1', 'confirmed', NULL, 2200, 'EUR', '$now', '$now', '$now')");
+
+        return $bookingId;
     }
 
     private function seedFixtureData(): void

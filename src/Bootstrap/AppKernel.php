@@ -31,6 +31,7 @@ use App\Modules\Booking\Api\BookingController;
 use App\Modules\Booking\Application\Service\CreateBookingService;
 use App\Modules\Booking\Application\Service\GetBookingService;
 use App\Modules\Booking\Application\Service\ListMyBookingsService;
+use App\Modules\Booking\Application\Service\MarkNoShowService;
 use App\Modules\Booking\Infrastructure\Persistence\PdoBookingRepository;
 use App\Modules\IdentityAccess\Api\ApiKeyController;
 use App\Modules\IdentityAccess\Api\AuthController;
@@ -126,6 +127,7 @@ final class AppKernel
                 new CreateBookingService($tx, $openingRepository, new PdoBookingRepository($pdo)),
                 new GetBookingService(new PdoBookingRepository($pdo), new PdoPaymentRepository($pdo), $providerRepository),
                 new ListMyBookingsService(new PdoBookingRepository($pdo)),
+                new MarkNoShowService($tx, new PdoBookingRepository($pdo), $providerRepository),
                 $idempotency
             ),
             new PaymentController(

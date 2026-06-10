@@ -11,6 +11,7 @@ use App\Modules\Booking\Application\Dto\CreateBookingRequest;
 use App\Modules\Booking\Application\Service\CreateBookingService;
 use App\Modules\Booking\Application\Service\GetBookingService;
 use App\Modules\Booking\Application\Service\ListMyBookingsService;
+use App\Modules\Booking\Application\Service\MarkNoShowService;
 use App\Platform\Idempotency\IdempotencyExecutor;
 use OpenApi\Attributes as OA;
 
@@ -20,6 +21,7 @@ final class BookingController
         private CreateBookingService $service,
         private GetBookingService $getService,
         private ListMyBookingsService $listMineService,
+        private MarkNoShowService $noShowService,
         private IdempotencyExecutor $idempotency,
     ) {
     }
@@ -105,5 +107,66 @@ final class BookingController
         $data = $this->listMineService->listForActor($actor, $state, $limit);
 
         return ApiResponse::ok(['data' => $data, 'meta' => ['request_id' => uniqid('req_', true)]]);
+    }
+
+    #[OA\Post(
+        path: '/bookings/{booking_id}:mark-provider-no-show',
+        summary: 'Record a provider no-show for a confirmed booking',
+        security: [['apiKey' => []]],
+        tags: ['Bookings'],
+        parameters: [
+            new OA\Parameter(name: 'booking_id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'Idempotency-Key', in: 'header', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Provider no-show recorded'),
+            new OA\Response(response: 403, description: 'Forbidden', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
+            new OA\Response(response: 409, description: 'Invalid booking state', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
+        ],
+    )]
+    public function markProviderNoShow(ActorContext $actor, Request $request, string $bookingId): ApiResponse
+    {
+        return $this->noShow($actor, $request, $bookingId, 'provider');
+    }
+
+    #[OA\Post(
+        path: '/bookings/{booking_id}:mark-client-no-show',
+        summary: 'Record a client no-show for a confirmed booking',
+        security: [['apiKey' => []]],
+        tags: ['Bookings'],
+        parameters: [
+            new OA\Parameter(name: 'booking_id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'Idempotency-Key', in: 'header', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Client no-show recorded'),
+            new OA\Response(response: 403, description: 'Forbidden', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
+            new OA\Response(response: 409, description: 'Invalid booking state', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
+        ],
+    )]
+    public function markClientNoShow(ActorContext $actor, Request $request, string $bookingId): ApiResponse
+    {
+        return $this->noShow($actor, $request, $bookingId, 'client');
+    }
+
+    private function noShow(ActorContext $actor, Request $request, string $bookingId, string $noShowActor): ApiResponse
+    {
+        $key = $request->header('Idempotency-Key') ?? '';
+        $scope = "booking.mark-$noShowActor-no-show";
+        $payload = $request->body + ['booking_id' => $bookingId];
+        $result = $this->idempotency->execute($scope, $key, $payload, function () use ($actor, $bookingId, $noShowActor): array {
+            $data = $noShowActor === 'provider'
+                ? $this->noShowService->markProviderNoShow($actor, $bookingId)
+                : $this->noShowService->markClientNoShow($actor, $bookingId);
+
+            return [
+                'status' => 200,
+                'body' => ['data' => $data, 'meta' => ['request_id' => uniqid('req_', true), 'idempotency_replayed' => false]],
+                'resource_type' => 'booking',
+                'resource_id' => $data['booking_id'],
+            ];
+        });
+
+        return new ApiResponse($result['status'], $result['body']);
     }
 }
