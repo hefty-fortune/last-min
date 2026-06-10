@@ -17,6 +17,7 @@ use App\Modules\IdentityAccess\Api\MeController;
 use App\Modules\Openings\Api\OpeningController;
 use App\Modules\Payments\Api\PaymentController;
 use App\Modules\Providers\Api\ProviderController;
+use App\Modules\Refunds\Api\RefundController;
 use App\Platform\Webhooks\Stripe\StripeWebhookController;
 
 final class ApiV1Routes
@@ -39,6 +40,7 @@ final class ApiV1Routes
         OpeningController $openings,
         BookingController $bookings,
         PaymentController $payments,
+        RefundController $refunds,
         StripeWebhookController $stripeWebhook,
     ): void {
         $router->add('POST', '/api/v1/auth/login', function (Request $request) use ($auth) {
@@ -207,6 +209,16 @@ final class ApiV1Routes
         $router->add('GET', '/api/v1/bookings/{booking_id}/payments/{payment_id}', function (Request $request, array $params) use ($payments) {
             $actor = $this->resolver->resolve($request->headers);
             return $payments->getForBooking($actor, $params['booking_id'], $params['payment_id']);
+        });
+
+        $router->add('GET', '/api/v1/bookings/{booking_id}/refunds', function (Request $request, array $params) use ($refunds) {
+            $actor = $this->resolver->resolve($request->headers);
+            return $refunds->listForBooking($actor, $params['booking_id']);
+        });
+
+        $router->add('POST', '/api/v1/refunds/{refund_id}:approve', function (Request $request, array $params) use ($refunds) {
+            $actor = $this->resolver->resolve($request->headers);
+            return $refunds->approve($actor, $request, $params['refund_id']);
         });
 
         $router->add('POST', '/api/v1/webhooks/stripe', fn (Request $request) => $stripeWebhook->ingest($request));

@@ -59,6 +59,11 @@ use App\Modules\Payments\Infrastructure\Persistence\PdoPaymentRepository;
 use App\Modules\Providers\Api\ProviderController;
 use App\Modules\Providers\Application\Service\CreateProviderService;
 use App\Modules\Providers\Infrastructure\Persistence\PdoProviderRepository;
+use App\Modules\Refunds\Api\RefundController;
+use App\Modules\Refunds\Application\Service\ApproveRefundService;
+use App\Modules\Refunds\Application\Service\ListBookingRefundsService;
+use App\Modules\Refunds\Application\Service\RequestRefundService;
+use App\Modules\Refunds\Infrastructure\Persistence\PdoRefundRepository;
 use App\Platform\Idempotency\IdempotencyExecutor;
 use App\Platform\Idempotency\PdoIdempotencyStore;
 use App\Platform\Integrations\Stripe\StubStripeGateway;
@@ -134,12 +139,22 @@ final class MilestoneOneTest extends TestCase
                 new CreateBookingService($tx, $openingRepository, new PdoBookingRepository($this->pdo)),
                 new GetBookingService(new PdoBookingRepository($this->pdo), new PdoPaymentRepository($this->pdo), $providerRepository),
                 new ListMyBookingsService(new PdoBookingRepository($this->pdo)),
-                new MarkNoShowService($tx, new PdoBookingRepository($this->pdo), $providerRepository),
+                new MarkNoShowService(
+                    $tx,
+                    new PdoBookingRepository($this->pdo),
+                    $providerRepository,
+                    new RequestRefundService(new PdoPaymentRepository($this->pdo), new PdoRefundRepository($this->pdo))
+                ),
                 $idempotency
             ),
             new PaymentController(
                 new InitiatePaymentService(new PdoBookingRepository($this->pdo), new PdoPaymentRepository($this->pdo), new StubStripeGateway()),
                 new GetPaymentService(new PdoPaymentRepository($this->pdo), $providerRepository),
+                $idempotency
+            ),
+            new RefundController(
+                new ListBookingRefundsService(new PdoRefundRepository($this->pdo), new PdoBookingRepository($this->pdo), $providerRepository),
+                new ApproveRefundService(new PdoRefundRepository($this->pdo)),
                 $idempotency
             ),
             new StripeWebhookController(new StripeSignatureVerifier('test_webhook_secret'), new PdoStripeWebhookEventRepository($this->pdo), new StripeWebhookDispatcher()),
@@ -410,6 +425,106 @@ final class MilestoneOneTest extends TestCase
 
         self::assertSame(403, $response->statusCode);
         self::assertSame('FORBIDDEN_ROLE_MISSING', $response->body['error']['code']);
+    }
+
+    public function testProviderNoShowTriggersRefundRequest(): void
+    {
+        $bookingId = $this->seedConfirmedBooking('booking-refund-1');
+        $this->seedPaymentForBooking('payment-refund-1', $bookingId);
+
+        $headers = $this->actorHeaders(['provider']);
+        $headers['Idempotency-Key'] = 'idem-refund-noshow-1';
+        $marked = $this->router->dispatch(new Request('POST', "/api/v1/bookings/$bookingId:mark-provider-no-show", $headers, []));
+        self::assertSame(200, $marked->statusCode);
+
+        $refunds = $this->router->dispatch(new Request('GET', "/api/v1/bookings/$bookingId/refunds", $this->actorHeaders(['provider']), []));
+        self::assertSame(200, $refunds->statusCode);
+        self::assertCount(1, $refunds->body['data']);
+        self::assertSame('requested', $refunds->body['data'][0]['state']);
+        self::assertSame('provider_no_show', $refunds->body['data'][0]['reason']);
+        self::assertSame('payment-refund-1', $refunds->body['data'][0]['payment_id']);
+        self::assertSame(['currency' => 'EUR', 'amount_minor' => 2200], $refunds->body['data'][0]['amount']);
+    }
+
+    public function testClientNoShowDoesNotCreateRefund(): void
+    {
+        $bookingId = $this->seedConfirmedBooking('booking-refund-2');
+        $this->seedPaymentForBooking('payment-refund-2', $bookingId);
+
+        $headers = $this->actorHeaders(['provider']);
+        $headers['Idempotency-Key'] = 'idem-refund-noshow-2';
+        $marked = $this->router->dispatch(new Request('POST', "/api/v1/bookings/$bookingId:mark-client-no-show", $headers, []));
+        self::assertSame(200, $marked->statusCode);
+
+        $refunds = $this->router->dispatch(new Request('GET', "/api/v1/bookings/$bookingId/refunds", $this->actorHeaders(['client']), []));
+        self::assertSame(200, $refunds->statusCode);
+        self::assertCount(0, $refunds->body['data']);
+    }
+
+    public function testProviderNoShowWithoutPaymentCreatesNoRefund(): void
+    {
+        $bookingId = $this->seedConfirmedBooking('booking-refund-3');
+
+        $headers = $this->actorHeaders(['provider']);
+        $headers['Idempotency-Key'] = 'idem-refund-noshow-3';
+        $marked = $this->router->dispatch(new Request('POST', "/api/v1/bookings/$bookingId:mark-provider-no-show", $headers, []));
+        self::assertSame(200, $marked->statusCode);
+
+        $refunds = $this->router->dispatch(new Request('GET', "/api/v1/bookings/$bookingId/refunds", $this->actorHeaders(['admin']), []));
+        self::assertSame(200, $refunds->statusCode);
+        self::assertCount(0, $refunds->body['data']);
+    }
+
+    public function testAdminCanApproveRequestedRefundIdempotently(): void
+    {
+        $bookingId = $this->seedConfirmedBooking('booking-refund-4');
+        $this->seedPaymentForBooking('payment-refund-4', $bookingId);
+
+        $noShowHeaders = $this->actorHeaders(['provider']);
+        $noShowHeaders['Idempotency-Key'] = 'idem-refund-noshow-4';
+        $this->router->dispatch(new Request('POST', "/api/v1/bookings/$bookingId:mark-provider-no-show", $noShowHeaders, []));
+
+        $refunds = $this->router->dispatch(new Request('GET', "/api/v1/bookings/$bookingId/refunds", $this->actorHeaders(['admin']), []));
+        $refundId = $refunds->body['data'][0]['refund_id'];
+
+        $denied = $this->router->dispatch(new Request('POST', "/api/v1/refunds/$refundId:approve", $this->actorHeaders(['provider']) + ['Idempotency-Key' => 'idem-refund-approve-denied'], []));
+        self::assertSame(403, $denied->statusCode);
+
+        $approveHeaders = $this->actorHeaders(['admin']);
+        $approveHeaders['Idempotency-Key'] = 'idem-refund-approve-1';
+        $request = new Request('POST', "/api/v1/refunds/$refundId:approve", $approveHeaders, ['note' => 'Provider no-show confirmed by support.']);
+
+        $first = $this->router->dispatch($request);
+        self::assertSame(200, $first->statusCode);
+        self::assertSame('pending', $first->body['data']['state']);
+        self::assertSame('actor-1', $first->body['data']['decided_by_actor_id']);
+        self::assertSame('Provider no-show confirmed by support.', $first->body['data']['decision_note']);
+
+        $second = $this->router->dispatch($request);
+        self::assertSame(200, $second->statusCode);
+        self::assertTrue($second->body['meta']['idempotency_replayed']);
+
+        $retryHeaders = $this->actorHeaders(['admin']);
+        $retryHeaders['Idempotency-Key'] = 'idem-refund-approve-2';
+        $conflict = $this->router->dispatch(new Request('POST', "/api/v1/refunds/$refundId:approve", $retryHeaders, []));
+        self::assertSame(409, $conflict->statusCode);
+        self::assertSame('REFUND_STATE_INVALID', $conflict->body['error']['code']);
+    }
+
+    public function testRefundListDeniedForUnrelatedActor(): void
+    {
+        $bookingId = $this->seedConfirmedBooking('booking-refund-5');
+        $this->seedPaymentForBooking('payment-refund-5', $bookingId);
+
+        $otherHeaders = [
+            'X-Actor-Id' => 'actor-2',
+            'X-Actor-Subject' => 'sso|user_2',
+            'X-Actor-Roles' => 'client',
+            'X-User-Profile-Id' => 'profile-client-2',
+        ];
+        $response = $this->router->dispatch(new Request('GET', "/api/v1/bookings/$bookingId/refunds", $otherHeaders, []));
+        self::assertSame(403, $response->statusCode);
+        self::assertSame('FORBIDDEN_REFUND_SCOPE', $response->body['error']['code']);
     }
 
     public function testClientCanListOwnBookings(): void
@@ -938,6 +1053,14 @@ final class MilestoneOneTest extends TestCase
             'X-Actor-Roles' => implode(',', $roles),
             'X-User-Profile-Id' => 'profile-client-1',
         ];
+    }
+
+    private function seedPaymentForBooking(string $paymentId, string $bookingId, string $state = 'captured'): string
+    {
+        $now = (new \DateTimeImmutable('2026-03-26T10:06:00Z'))->format(DATE_ATOM);
+        $this->pdo->exec("INSERT INTO payments (id, booking_id, provider_id, client_user_profile_id, state, amount, currency, stripe_payment_intent_id, created_at, updated_at) VALUES ('$paymentId', '$bookingId', 'provider-1', 'profile-client-1', '$state', 2200, 'EUR', 'pi_$paymentId', '$now', '$now')");
+
+        return $paymentId;
     }
 
     private function seedConfirmedBooking(string $bookingId): string

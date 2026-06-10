@@ -9,6 +9,7 @@ use App\Common\Api\ApiException;
 use App\Common\Security\ActorContext;
 use App\Modules\Booking\Application\Port\BookingRepository;
 use App\Modules\Providers\Application\Port\ProviderRepository;
+use App\Modules\Refunds\Application\Service\RequestRefundService;
 use App\Platform\Persistence\TransactionManager;
 
 final class MarkNoShowService
@@ -17,14 +18,13 @@ final class MarkNoShowService
         private TransactionManager $tx,
         private BookingRepository $bookings,
         private ProviderRepository $providers,
+        private RequestRefundService $refundRequests,
     ) {
     }
 
     /** @return array<string, mixed> */
     public function markProviderNoShow(ActorContext $actor, string $bookingId): array
     {
-        // Extension point: provider no-show must trigger the refund workflow
-        // once the Refunds module lands; the transition is recorded here.
         return $this->mark($actor, $bookingId, 'provider', 'provider_no_show');
     }
 
@@ -50,7 +50,15 @@ final class MarkNoShowService
                 throw new ApiException(409, new ApiError('BOOKING_STATE_INVALID', 'No-show can only be recorded for confirmed bookings.'));
             }
 
-            return $this->bookings->markNoShow($bookingId, $noShowActor, $targetState);
+            $updated = $this->bookings->markNoShow($bookingId, $noShowActor, $targetState);
+
+            if ($targetState === 'provider_no_show') {
+                // Locked business rule: provider no-show triggers the refund
+                // workflow, atomically with the state transition.
+                $this->refundRequests->requestForBooking($bookingId, 'provider_no_show');
+            }
+
+            return $updated;
         });
     }
 

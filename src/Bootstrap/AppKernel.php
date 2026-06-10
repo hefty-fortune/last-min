@@ -61,6 +61,11 @@ use App\Modules\Payments\Infrastructure\Persistence\PdoPaymentRepository;
 use App\Modules\Providers\Api\ProviderController;
 use App\Modules\Providers\Application\Service\CreateProviderService;
 use App\Modules\Providers\Infrastructure\Persistence\PdoProviderRepository;
+use App\Modules\Refunds\Api\RefundController;
+use App\Modules\Refunds\Application\Service\ApproveRefundService;
+use App\Modules\Refunds\Application\Service\ListBookingRefundsService;
+use App\Modules\Refunds\Application\Service\RequestRefundService;
+use App\Modules\Refunds\Infrastructure\Persistence\PdoRefundRepository;
 use App\Platform\Idempotency\IdempotencyExecutor;
 use App\Platform\Idempotency\PdoIdempotencyStore;
 use App\Platform\Integrations\Stripe\StubStripeGateway;
@@ -127,12 +132,22 @@ final class AppKernel
                 new CreateBookingService($tx, $openingRepository, new PdoBookingRepository($pdo)),
                 new GetBookingService(new PdoBookingRepository($pdo), new PdoPaymentRepository($pdo), $providerRepository),
                 new ListMyBookingsService(new PdoBookingRepository($pdo)),
-                new MarkNoShowService($tx, new PdoBookingRepository($pdo), $providerRepository),
+                new MarkNoShowService(
+                    $tx,
+                    new PdoBookingRepository($pdo),
+                    $providerRepository,
+                    new RequestRefundService(new PdoPaymentRepository($pdo), new PdoRefundRepository($pdo))
+                ),
                 $idempotency
             ),
             new PaymentController(
                 new InitiatePaymentService(new PdoBookingRepository($pdo), new PdoPaymentRepository($pdo), new StubStripeGateway()),
                 new GetPaymentService(new PdoPaymentRepository($pdo), $providerRepository),
+                $idempotency
+            ),
+            new RefundController(
+                new ListBookingRefundsService(new PdoRefundRepository($pdo), new PdoBookingRepository($pdo), $providerRepository),
+                new ApproveRefundService(new PdoRefundRepository($pdo)),
                 $idempotency
             ),
             new StripeWebhookController(new StripeSignatureVerifier($stripeWebhookSecret), new PdoStripeWebhookEventRepository($pdo), new StripeWebhookDispatcher()),
