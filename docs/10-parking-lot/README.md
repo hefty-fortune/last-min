@@ -16,13 +16,13 @@ Maintaining a structured idea repository prevents valuable concepts from being f
 
 ### Future product features
 
-Future product features may include a bidding system for high-demand slots.
+Future product features may include a bidding system for high-demand openings.
 
 Auction-based mechanics may allow users to compete for premium last-minute availability.
 
-Providers may be able to configure dynamic pricing for slots.
+Providers may be able to configure dynamic pricing for openings.
 
-Users may receive personalized slot recommendations based on past bookings.
+Users may receive personalized opening recommendations based on past bookings.
 
 A loyalty program may reward frequent users with platform benefits.
 

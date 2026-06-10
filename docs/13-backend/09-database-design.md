@@ -16,7 +16,7 @@ The initial backend foundation includes the following tables:
 - `provider_staff`
 - `provider_services`
 - `provider_resources`
-- `slots`
+- `openings`
 - `bookings`
 - `payments`
 - `refunds`
@@ -38,7 +38,7 @@ The initial backend foundation includes the following tables:
 - `provider_staff` stores bookable or operational staff members.
 - `provider_services` stores what clients can book.
 - `provider_resources` stores optional allocatable physical or logical resources.
-- `slots` stores published offerable times.
+- `openings` stores published offerable times.
 - `bookings` stores reservation lifecycle.
 - `payments` stores payment lifecycle.
 - `refunds` stores refund lifecycle.
@@ -77,7 +77,7 @@ Build the schema in layers that follow domain dependency order:
 
 1. Identity and auth
 2. Provider structure
-3. Slot and booking core
+3. Opening and booking core
 4. Payments and refunds
 5. Reliability and audit
 6. Optimizations and refinements
@@ -110,7 +110,7 @@ Create:
 
 Create:
 
-- `slots`
+- `openings`
 - `bookings`
 
 #### Batch 4 - payment foundation
@@ -159,7 +159,7 @@ Add:
 
 Add indexes for:
 
-- Slot listing
+- Opening listing
 - Booking lookup
 - Provider ownership queries
 - Webhook processing
@@ -179,7 +179,7 @@ Examples:
 - `20260325_001_create_users_table`
 - `20260325_002_create_user_phones_table`
 - `20260325_003_create_provider_accounts_table`
-- `20260325_010_create_slots_table`
+- `20260325_010_create_openings_table`
 - `20260325_011_create_bookings_table`
 - `20260325_020_add_active_booking_unique_index`
 - `20260325_021_add_webhook_event_unique_constraint`
@@ -270,7 +270,7 @@ For each migration, review:
 10. Create `provider_staff`
 11. Create `provider_services`
 12. Create `provider_resources`
-13. Create `slots`
+13. Create `openings`
 14. Create `bookings`
 15. Create `payments`
 16. Create `refunds`
@@ -510,7 +510,7 @@ Key columns:
 
 Notes:
 
-- Slots may snapshot price and service details at booking time if needed.
+- Openings may snapshot price and service details at booking time if needed.
 
 #### provider_resources
 
@@ -528,9 +528,9 @@ Notes:
 
 - Optional in the MVP, but useful for extensibility.
 
-### 3. Slot and booking core
+### 3. Opening and booking core
 
-#### slots
+#### openings
 
 Key columns:
 
@@ -562,7 +562,7 @@ Notes:
 Key columns:
 
 - `id`
-- `slot_id`
+- `opening_id`
 - `provider_account_id`
 - `client_user_id`
 - `status`
@@ -839,47 +839,47 @@ Meaning: a resource belongs to one provider account.
 
 Recommended delete behavior: `RESTRICT`.
 
-### 3. Slot and booking core foreign keys
+### 3. Opening and booking core foreign keys
 
-#### slots.provider_account_id -> provider_accounts.id
+#### openings.provider_account_id -> provider_accounts.id
 
-Meaning: a slot belongs to one provider account.
-
-Recommended delete behavior: `RESTRICT`.
-
-#### slots.provider_location_id -> provider_locations.id
-
-Meaning: a slot may reference a specific provider location.
-
-Recommended delete behavior: `SET NULL` if location linkage is optional and historical slot retention matters. Otherwise `RESTRICT`.
-
-#### slots.provider_staff_id -> provider_staff.id
-
-Meaning: a slot may reference a specific staff member.
-
-Recommended delete behavior: `SET NULL` if staff linkage is optional and historical slot retention matters. Otherwise `RESTRICT`.
-
-#### slots.provider_service_id -> provider_services.id
-
-Meaning: a slot belongs to one provider service.
+Meaning: a opening belongs to one provider account.
 
 Recommended delete behavior: `RESTRICT`.
 
-#### slots.provider_resource_id -> provider_resources.id
+#### openings.provider_location_id -> provider_locations.id
 
-Meaning: a slot may reference one optional resource.
+Meaning: a opening may reference a specific provider location.
+
+Recommended delete behavior: `SET NULL` if location linkage is optional and historical opening retention matters. Otherwise `RESTRICT`.
+
+#### openings.provider_staff_id -> provider_staff.id
+
+Meaning: a opening may reference a specific staff member.
+
+Recommended delete behavior: `SET NULL` if staff linkage is optional and historical opening retention matters. Otherwise `RESTRICT`.
+
+#### openings.provider_service_id -> provider_services.id
+
+Meaning: a opening belongs to one provider service.
+
+Recommended delete behavior: `RESTRICT`.
+
+#### openings.provider_resource_id -> provider_resources.id
+
+Meaning: a opening may reference one optional resource.
 
 Recommended delete behavior: `SET NULL`.
 
-#### slots.created_by_user_id -> users.id
+#### openings.created_by_user_id -> users.id
 
-Meaning: a slot was created by one user.
+Meaning: a opening was created by one user.
 
 Recommended delete behavior: `RESTRICT`.
 
-#### bookings.slot_id -> slots.id
+#### bookings.opening_id -> openings.id
 
-Meaning: a booking belongs to one slot.
+Meaning: a booking belongs to one opening.
 
 Recommended delete behavior: `RESTRICT`.
 
@@ -972,7 +972,7 @@ No required foreign key from `entity_id` to business tables in the first version
 - `provider_accounts.created_by_user_id`
 - `provider_members.user_id`
 - `provider_staff.user_id`
-- `slots.created_by_user_id`
+- `openings.created_by_user_id`
 - `bookings.client_user_id`
 - `refunds.requested_by_user_id`
 - `refunds.approved_by_user_id`
@@ -985,29 +985,29 @@ No required foreign key from `entity_id` to business tables in the first version
 - `provider_staff.provider_account_id`
 - `provider_services.provider_account_id`
 - `provider_resources.provider_account_id`
-- `slots.provider_account_id`
+- `openings.provider_account_id`
 - `bookings.provider_account_id`
 - `payments.provider_account_id`
 
 #### provider_locations is referenced by
 
-- `slots.provider_location_id`
+- `openings.provider_location_id`
 
 #### provider_staff is referenced by
 
-- `slots.provider_staff_id`
+- `openings.provider_staff_id`
 
 #### provider_services is referenced by
 
-- `slots.provider_service_id`
+- `openings.provider_service_id`
 
 #### provider_resources is referenced by
 
-- `slots.provider_resource_id`
+- `openings.provider_resource_id`
 
-#### slots is referenced by
+#### openings is referenced by
 
-- `bookings.slot_id`
+- `bookings.opening_id`
 
 #### bookings is referenced by
 
@@ -1030,7 +1030,7 @@ Bookings, payments, refunds, webhook events, and audit logs represent business h
 
 #### Provider structure changes
 
-If a provider location, staff member, or resource changes over time, historical bookings and slots may still need to remain interpretable. This is one reason snapshot columns in bookings are valuable.
+If a provider location, staff member, or resource changes over time, historical bookings and openings may still need to remain interpretable. This is one reason snapshot columns in bookings are valuable.
 
 #### Polymorphic records
 
@@ -1183,9 +1183,9 @@ Optional recommendation:
 
 - `unique(provider_account_id, name)` if resource names must be distinct within one provider
 
-### 4. Slot constraints and indexes
+### 4. Opening constraints and indexes
 
-#### slots
+#### openings
 
 Recommended constraints and indexes:
 
@@ -1211,7 +1211,7 @@ Optional recommendations:
 
 Notes:
 
-- Published slot listing will likely be one of the most common reads in the system.
+- Published opening listing will likely be one of the most common reads in the system.
 - Time-window filtering must stay fast.
 
 ### 5. Booking constraints and indexes
@@ -1222,7 +1222,7 @@ Recommended constraints and indexes:
 
 - Check that `status` is within allowed values
 - `check(booked_price_amount >= 0)`
-- Index on `slot_id`
+- Index on `opening_id`
 - Index on `provider_account_id`
 - Index on `client_user_id`
 - Index on `status`
@@ -1235,11 +1235,11 @@ Recommended constraints and indexes:
 
 Critical business rule:
 
-- Only one active booking may exist for the same slot at a time.
+- Only one active booking may exist for the same opening at a time.
 
 Recommended PostgreSQL solution:
 
-- Use a partial unique index on `slot_id` for active booking states.
+- Use a partial unique index on `opening_id` for active booking states.
 
 Recommended active states for uniqueness protection:
 
@@ -1259,7 +1259,7 @@ Non-blocking states:
 
 Optional recommendations:
 
-- Composite index on `(slot_id, status)`
+- Composite index on `(opening_id, status)`
 - Composite index on `(status, hold_expires_at)` for hold cleanup jobs
 
 ### 6. Payment constraints and indexes
@@ -1405,7 +1405,7 @@ Top priority protections:
 - Unique provider membership per provider and user
 - Unique webhook external event per provider
 - Unique Stripe payment intent and refund references
-- One active booking per slot
+- One active booking per opening
 - Explicit status validation on lifecycle tables
 
 Implementation principle:
@@ -1540,7 +1540,7 @@ Important notes:
 
 Meaning: store provider-associated personnel.
 
-Responsibility: support assigning staff to slots and provider operations.
+Responsibility: support assigning staff to openings and provider operations.
 
 Important notes:
 
@@ -1558,7 +1558,7 @@ Important notes:
 
 - A service is a catalog or business concept, not a booking record.
 - Service configuration may change over time, so bookings should preserve snapshots of what was purchased when needed.
-- Duration and default pricing belong naturally here, even though slot-level overrides may exist later.
+- Duration and default pricing belong naturally here, even though opening-level overrides may exist later.
 
 ### 12. provider_resources
 
@@ -1571,7 +1571,7 @@ Important notes:
 - This table may be lightly used in the MVP, but including it in the foundation avoids future structural hacks.
 - Resources should remain optional unless business rules require them.
 
-### 13. slots
+### 13. openings
 
 Meaning: store provider-published offerable time windows.
 
@@ -1579,18 +1579,18 @@ Responsibility: represent the sellable availability unit that a client can brows
 
 Important notes:
 
-- A slot is not itself a booking.
-- A slot should not become a dumping place for payment or refund state.
-- A slot expresses supply.
+- A opening is not itself a booking.
+- A opening should not become a dumping place for payment or refund state.
+- A opening expresses supply.
 - Booking expresses reservation truth.
 - Keep this distinction clear in code and schema.
-- Historical interpretation of slots may matter even after provider-side changes.
+- Historical interpretation of openings may matter even after provider-side changes.
 
 ### 14. bookings
 
 Meaning: store reservation attempts and booking lifecycle state.
 
-Responsibility: act as the central aggregate for reservation truth. It connects slot occupancy, client action, payment flow, and business outcome.
+Responsibility: act as the central aggregate for reservation truth. It connects opening occupancy, client action, payment flow, and business outcome.
 
 Important notes:
 
@@ -1670,9 +1670,9 @@ Important notes:
 
 A user is a global identity. A provider account is a business-side ownership container. A staff record is an operational role or person context. These are related but not interchangeable.
 
-#### Slot vs booking distinction
+#### Opening vs booking distinction
 
-A slot expresses provider supply. A booking expresses reservation and occupancy truth. This distinction must remain clear across schema, code, and API design.
+A opening expresses provider supply. A booking expresses reservation and occupancy truth. This distinction must remain clear across schema, code, and API design.
 
 #### Payment vs refund distinction
 
@@ -1694,7 +1694,7 @@ The following entities should be treated with heightened care:
 
 - `user_phones`
 - `provider_members`
-- `slots`
+- `openings`
 - `bookings`
 - `payments`
 - `refunds`
@@ -1713,7 +1713,7 @@ The initial ERD should make these things immediately visible:
 
 - One global user identity model
 - One provider ownership model
-- One slot supply model
+- One opening supply model
 - One booking occupancy model
 - One payment and refund financial model
 - One reliability and audit support layer
@@ -1766,18 +1766,18 @@ Important note: this is one of the most important ownership clusters in the whol
 
 Contains:
 
-- `slots`
+- `openings`
 - `bookings`
 
 Meaning: supply and reservation truth.
 
 How it should look:
 
-- `slots` should sit between provider structure and bookings.
-- `slots` should point back to `provider_accounts`, `provider_locations`, `provider_staff`, `provider_services`, and optionally `provider_resources`.
-- `bookings` should point to `slots`, `provider_accounts`, and `users` through `client_user_id`.
+- `openings` should sit between provider structure and bookings.
+- `openings` should point back to `provider_accounts`, `provider_locations`, `provider_staff`, `provider_services`, and optionally `provider_resources`.
+- `bookings` should point to `openings`, `provider_accounts`, and `users` through `client_user_id`.
 
-Important note: the slot-vs-booking distinction should be visually obvious.
+Important note: the opening-vs-booking distinction should be visually obvious.
 
 #### 4. Financial cluster
 
@@ -1819,7 +1819,7 @@ Important note: these tables are support entities, but some are still mission-cr
 
 - `users` is the root of global identity.
 - `provider_accounts` is the root of provider-side ownership.
-- `slots` is the root of supply within the booking flow.
+- `openings` is the root of supply within the booking flow.
 - `bookings` is the central aggregate of reservation truth.
 - `payments` is the central aggregate of payment truth for a booking.
 
@@ -1829,7 +1829,7 @@ Top central entities:
 
 - `users`
 - `provider_accounts`
-- `slots`
+- `openings`
 - `bookings`
 - `payments`
 
@@ -1837,7 +1837,7 @@ Why these are central:
 
 - `users` anchors identity.
 - `provider_accounts` anchors provider ownership.
-- `slots` anchors supply.
+- `openings` anchors supply.
 - `bookings` anchors reservation lifecycle.
 - `payments` anchors financial outcome.
 
@@ -1861,15 +1861,15 @@ Why these are central:
 
 #### Supply relationships
 
-- `provider_accounts -> slots`
-- `provider_locations -> slots`
-- `provider_staff -> slots`
-- `provider_services -> slots`
-- `provider_resources -> slots`
+- `provider_accounts -> openings`
+- `provider_locations -> openings`
+- `provider_staff -> openings`
+- `provider_services -> openings`
+- `provider_resources -> openings`
 
 #### Booking relationships
 
-- `slots -> bookings`
+- `openings -> bookings`
 - `provider_accounts -> bookings`
 - `users -> bookings` through `client_user_id`
 
@@ -1885,7 +1885,7 @@ Why these are central:
 - `users -> audit_logs` through `actor_user_id`
 - `refresh_tokens -> user_sessions`
 - `users -> provider_accounts` through `created_by_user_id`
-- `users -> slots` through `created_by_user_id`
+- `users -> openings` through `created_by_user_id`
 
 ### Cardinality notes for ERD thinking
 
@@ -1899,8 +1899,8 @@ Why these are central:
 - `provider_accounts -> provider_staff`: one-to-many
 - `provider_accounts -> provider_services`: one-to-many
 - `provider_accounts -> provider_resources`: one-to-many
-- `provider_accounts -> slots`: one-to-many
-- `slots -> bookings`: one-to-many historically, but only one active booking at a time
+- `provider_accounts -> openings`: one-to-many
+- `openings -> bookings`: one-to-many historically, but only one active booking at a time
 - `users -> bookings`: one-to-many from the client perspective
 - `bookings -> payments`: usually one-to-many if retries or multiple payment attempts are allowed conceptually
 - `payments -> refunds`: one-to-many
@@ -1911,8 +1911,8 @@ High integrity pressure relationships:
 
 - `user_phones -> users`
 - `provider_members -> provider_accounts` and `users`
-- `slots -> provider_accounts` and `provider_services`
-- `bookings -> slots`
+- `openings -> provider_accounts` and `provider_services`
+- `bookings -> openings`
 - `payments -> bookings`
 - `refunds -> payments`
 - `webhook_events` uniqueness by provider and external event id
@@ -1921,7 +1921,7 @@ High integrity pressure relationships:
 
 - Top-left: identity and auth cluster around `users`
 - Top-right: provider structure cluster around `provider_accounts`
-- Center: `slots` and `bookings`
+- Center: `openings` and `bookings`
 - Lower-center or lower-right: `payments` and `refunds`
 - Far-right or bottom: `webhook_events`, `outbox_messages`, `audit_logs`
 
@@ -1931,7 +1931,7 @@ High integrity pressure relationships:
 - Do not overload the diagram with every nullable detail.
 - Do not turn the first ERD into a physical database implementation sheet.
 - Do not over-emphasize support tables compared to the business core.
-- Do not hide the slot-vs-booking distinction.
+- Do not hide the opening-vs-booking distinction.
 
 ### Recommended ERD emphasis order
 
@@ -1939,7 +1939,7 @@ High integrity pressure relationships:
 
 - `users`
 - `provider_accounts`
-- `slots`
+- `openings`
 - `bookings`
 - `payments`
 - `refunds`

@@ -88,8 +88,9 @@ Note on creation semantics:
 
 - `POST /api/v1/providers/{provider_id}/openings` — AUTH, ROLE(provider owner|org manager), IDEMP
 - `GET /api/v1/providers/{provider_id}/openings` — AUTH, ROLE(provider staff|admin|super_admin)
-- `PATCH /api/v1/providers/{provider_id}/openings/{opening_id}` — AUTH, ROLE(provider owner|org manager)
+- `GET /api/v1/providers/{provider_id}/openings/{opening_id}` — AUTH, ROLE(provider staff|admin|super_admin)
 - `POST /api/v1/providers/{provider_id}/openings/{opening_id}:publish` — AUTH, ROLE(provider owner|org manager), IDEMP
+- `POST /api/v1/providers/{provider_id}/openings/{opening_id}:cancel` — AUTH, ROLE(provider owner|org manager), IDEMP
 - `GET /api/v1/public/openings` — public/client discovery
 
 ### 2.5 Booking
@@ -496,8 +497,22 @@ Error code families:
 ```
 
 - **Response (201):** `Opening` with `status=draft`.
-- **Common errors:** `VALIDATION_TIME_RANGE_INVALID (422)`, `CONFLICT_OPENING_OVERLAP (409)`.
+- **Common errors:** `VALIDATION_TIME_RANGE_INVALID (422)`, `VALIDATION_SERVICE_OFFERING_NOT_FOUND (422)`, `VALIDATION_PRICE_INVALID (422)`, `FORBIDDEN_PROVIDER_ACCESS (403)`.
 - **Idempotency:** required.
+
+### `GET /api/v1/providers/{provider_id}/openings`
+
+- **Purpose:** list provider openings visible to the provider actor or admin actor.
+- **Auth requirement:** ROLE(provider owner|admin|super_admin).
+- **Query params:** `status`, `limit`.
+- **Response (200):** list of `Opening`.
+
+### `GET /api/v1/providers/{provider_id}/openings/{opening_id}`
+
+- **Purpose:** fetch a single provider opening by id.
+- **Auth requirement:** ROLE(provider owner|admin|super_admin).
+- **Response (200):** `Opening`.
+- **Common errors:** `OPENING_NOT_FOUND (404)`, `FORBIDDEN_PROVIDER_ACCESS (403)`.
 
 ### `POST /api/v1/providers/{provider_id}/openings/{opening_id}:publish`
 
@@ -509,13 +524,22 @@ Error code families:
 - **Common errors:** `CONFLICT_OPENING_STATE_INVALID (409)`.
 - **Idempotency:** required; repeated publish on same key returns same response.
 
+### `POST /api/v1/providers/{provider_id}/openings/{opening_id}:cancel`
+
+- **Purpose:** cancel a draft or published opening before booking-confirmation side effects are involved.
+- **Auth requirement:** ROLE(provider owner|org manager).
+- **Headers:** `Idempotency-Key` required.
+- **Request body:** empty object `{}`.
+- **Response (200):** `Opening` with `status=cancelled_by_provider`.
+- **Common errors:** `CONFLICT_OPENING_STATE_INVALID (409)`, `OPENING_NOT_FOUND (404)`.
+- **Idempotency:** required; repeated cancel on same key returns same response.
+
 ### `GET /api/v1/public/openings`
 
 - **Purpose:** client/public discovery of published openings.
 - **Auth requirement:** none (optional auth for personalization).
-- **Query params:** `city`, `starts_before`, `starts_after`, `max_price_minor`, `provider_id`, `service_offering_id`, `limit`, `cursor`, `sort=starts_at|-starts_at`.
-- **Response (200):** cursor page of public `Opening` projections.
-- **Common errors:** `VALIDATION_FILTER_INVALID (422)`.
+- **Query params:** `starts_before`, `starts_after`, `max_price_minor`, `provider_id`, `service_offering_id`, `limit`.
+- **Response (200):** list of public `Opening` projections ordered by `starts_at ASC`.
 
 ## 6.5 Booking creation and retrieval
 

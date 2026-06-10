@@ -44,7 +44,12 @@ use App\Modules\IdentityAccess\Infrastructure\Persistence\PdoUserAuthRepository;
 use App\Modules\IdentityAccess\Infrastructure\Security\ApiKeyBearerTokenActorResolver;
 use App\Modules\IdentityAccess\Infrastructure\Security\SessionBearerTokenActorResolver;
 use App\Modules\Openings\Api\OpeningController;
+use App\Modules\Openings\Application\Service\CancelOpeningService;
 use App\Modules\Openings\Application\Service\CreateOpeningService;
+use App\Modules\Openings\Application\Service\GetOpeningService;
+use App\Modules\Openings\Application\Service\ListOpeningsService;
+use App\Modules\Openings\Application\Service\OpeningAccessService;
+use App\Modules\Openings\Application\Service\PublishOpeningService;
 use App\Modules\Openings\Infrastructure\Persistence\PdoOpeningRepository;
 use App\Modules\Payments\Api\PaymentController;
 use App\Modules\Payments\Application\Service\InitiatePaymentService;
@@ -69,6 +74,10 @@ final class AppKernel
         $router = new Router();
         $idempotency = new IdempotencyExecutor(new PdoIdempotencyStore($pdo));
         $apiKeys = new PdoApiKeyRepository($pdo);
+        $providerRepository = new PdoProviderRepository($pdo);
+        $openingRepository = new PdoOpeningRepository($pdo);
+        $tx = new PdoTransactionManager($pdo);
+        $openingAccess = new OpeningAccessService($providerRepository);
         $sessions = new PdoAuthSessionRepository($pdo);
         $userAuth = new PdoUserAuthRepository($pdo);
 
@@ -101,9 +110,16 @@ final class AppKernel
             new ApiKeyController(new CreateApiKeyService($apiKeys), new DeleteApiKeyService($apiKeys), new ListApiKeysService($apiKeys)),
             new AuthController(new LoginService($userAuth, $sessions)),
             new MeController(new GetMeQueryService()),
-            new ProviderController(new CreateProviderService(new PdoProviderRepository($pdo)), $idempotency),
-            new OpeningController(new CreateOpeningService(new PdoOpeningRepository($pdo)), $idempotency),
-            new BookingController(new CreateBookingService(new PdoTransactionManager($pdo), new PdoOpeningRepository($pdo), new PdoBookingRepository($pdo)), $idempotency),
+            new ProviderController(new CreateProviderService($providerRepository), $idempotency),
+            new OpeningController(
+                new CreateOpeningService($openingRepository, $openingAccess),
+                new GetOpeningService($openingRepository, $openingAccess),
+                new ListOpeningsService($openingRepository, $openingAccess),
+                new PublishOpeningService($tx, $openingRepository, $openingAccess),
+                new CancelOpeningService($tx, $openingRepository, $openingAccess),
+                $idempotency
+            ),
+            new BookingController(new CreateBookingService($tx, $openingRepository, new PdoBookingRepository($pdo)), $idempotency),
             new PaymentController(new InitiatePaymentService(new PdoBookingRepository($pdo), new PdoPaymentRepository($pdo), new StubStripeGateway()), $idempotency),
             new StripeWebhookController(new StripeSignatureVerifier($stripeWebhookSecret), new PdoStripeWebhookEventRepository($pdo), new StripeWebhookDispatcher()),
         );

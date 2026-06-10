@@ -3,6 +3,8 @@ set -eu
 
 cd /app
 
+git config --global --add safe.directory /app >/dev/null 2>&1 || true
+
 if [ -f composer.json ]; then
   mkdir -p /app/vendor
   needs_install=0

@@ -6,7 +6,7 @@ The backend foundation is the first stable technical base for the MVP. The goal 
 
 The system is a modular monolith in plain PHP, using dependency injection and layered modules. PostgreSQL is the primary database. Authentication is handled by the platform's own verified phone-based registration and JWT-based sessions.
 
-The MVP supports fixed-price last-minute slots. A provider publishes a slot, a client books it, and payment is completed immediately. Provider cancellation and provider no-show trigger refunds. Client cancellation is not allowed in the MVP. Client no-show is treated as a consumed service and does not trigger a refund.
+The MVP supports fixed-price last-minute openings. A provider publishes a opening, a client books it, and payment is completed immediately. Provider cancellation and provider no-show trigger refunds. Client cancellation is not allowed in the MVP. Client no-show is treated as a consumed service and does not trigger a refund.
 
 Auditability is required from the beginning. The architecture should be clean, understandable, and easy to continue building on safely.
 
@@ -18,7 +18,7 @@ The following principles guide backend decisions:
 - Core booking and payment consistency matters more than controller simplicity.
 - Business rules belong in the domain and application layers, not inside controllers.
 - Controllers should orchestrate requests and responses, not contain core workflow logic.
-- Availability must not be duplicated inconsistently across slots, bookings, and payments.
+- Availability must not be duplicated inconsistently across openings, bookings, and payments.
 - Each module should have a clear responsibility and should not absorb unrelated logic.
 - State transitions must be explicit and controlled.
 - Important operations must be idempotent.
@@ -32,8 +32,8 @@ The following principles guide backend decisions:
 
 - Phone-based registration and verification
 - Provider creation and management
-- Locations, staff, services, resources, and slot publishing
-- Client browsing and booking of published slots
+- Locations, staff, services, resources, and opening publishing
+- Client browsing and booking of published openings
 - Immediate payment using Stripe
 - Provider cancellation refund logic
 - Provider no-show refund logic

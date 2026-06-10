@@ -43,7 +43,7 @@ Build foundations that support both provider types, even if some flows are phase
 
 ## Locked business rules
 
-- Providers publish last-minute openings / slots.
+- Providers publish last-minute openings / openings.
 - Clients can reserve / book and pay for them.
 - Clients cannot cancel.
 - Client no-show is treated as consumed service.
@@ -55,7 +55,7 @@ Build foundations that support both provider types, even if some flows are phase
 
 - Critical write flows must support idempotency.
 - Stripe webhook ingestion must be deduplicated and retry-safe.
-- Use DB transactions and locking where needed, especially around slot reservation.
+- Use DB transactions and locking where needed, especially around opening reservation.
 - Include outbox pattern support at structural level.
 - Include audit logging for sensitive operations.
 - Keep API errors standardized.

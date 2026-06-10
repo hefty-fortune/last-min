@@ -111,7 +111,7 @@ Canonical context:
 
 ## 1.6 Openings
 
-**Purpose:** publishable, reservable last-minute slots.
+**Purpose:** publishable, reservable last-minute openings.
 
 **Aggregate root:** `Opening`.
 
@@ -360,7 +360,7 @@ Transitions:
 
 ## 4) Invariants and domain rules
 
-## 4.1 Booking a slot / preventing double reservation
+## 4.1 Booking a opening / preventing double reservation
 
 - One opening can have at most one active booking in MVP (`capacity=1`).
 - In MVP, booking row creation starts at `reserved` (not `initiated`); `initiated` remains pre-persistence application state.

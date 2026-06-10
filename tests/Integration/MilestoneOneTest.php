@@ -42,7 +42,12 @@ use App\Modules\IdentityAccess\Infrastructure\Persistence\PdoAuthSessionReposito
 use App\Modules\IdentityAccess\Infrastructure\Persistence\PdoUserAuthRepository;
 use App\Modules\IdentityAccess\Infrastructure\Security\ApiKeyBearerTokenActorResolver;
 use App\Modules\Openings\Api\OpeningController;
+use App\Modules\Openings\Application\Service\CancelOpeningService;
 use App\Modules\Openings\Application\Service\CreateOpeningService;
+use App\Modules\Openings\Application\Service\GetOpeningService;
+use App\Modules\Openings\Application\Service\ListOpeningsService;
+use App\Modules\Openings\Application\Service\OpeningAccessService;
+use App\Modules\Openings\Application\Service\PublishOpeningService;
 use App\Modules\Openings\Infrastructure\Persistence\PdoOpeningRepository;
 use App\Modules\Payments\Api\PaymentController;
 use App\Modules\Payments\Application\Service\InitiatePaymentService;
@@ -84,6 +89,10 @@ final class MilestoneOneTest extends TestCase
         $apiKeys = new PdoApiKeyRepository($this->pdo);
         $this->apiKeys = $apiKeys;
         $this->router = new Router();
+        $providerRepository = new PdoProviderRepository($this->pdo);
+        $openingRepository = new PdoOpeningRepository($this->pdo);
+        $tx = new PdoTransactionManager($this->pdo);
+        $openingAccess = new OpeningAccessService($providerRepository);
 
         (new ApiV1Routes(new ActorContextResolver(new ApiKeyBearerTokenActorResolver($apiKeys))))->register(
             $this->router,
@@ -108,12 +117,89 @@ final class MilestoneOneTest extends TestCase
             new ApiKeyController(new CreateApiKeyService($apiKeys), new DeleteApiKeyService($apiKeys), new ListApiKeysService($apiKeys)),
             new AuthController(new LoginService(new PdoUserAuthRepository($this->pdo), new PdoAuthSessionRepository($this->pdo))),
             new MeController(new GetMeQueryService()),
-            new ProviderController(new CreateProviderService(new PdoProviderRepository($this->pdo)), $idempotency),
-            new OpeningController(new CreateOpeningService(new PdoOpeningRepository($this->pdo)), $idempotency),
-            new BookingController(new CreateBookingService(new PdoTransactionManager($this->pdo), new PdoOpeningRepository($this->pdo), new PdoBookingRepository($this->pdo)), $idempotency),
+            new ProviderController(new CreateProviderService($providerRepository), $idempotency),
+            new OpeningController(
+                new CreateOpeningService($openingRepository, $openingAccess),
+                new GetOpeningService($openingRepository, $openingAccess),
+                new ListOpeningsService($openingRepository, $openingAccess),
+                new PublishOpeningService($tx, $openingRepository, $openingAccess),
+                new CancelOpeningService($tx, $openingRepository, $openingAccess),
+                $idempotency
+            ),
+            new BookingController(new CreateBookingService($tx, $openingRepository, new PdoBookingRepository($this->pdo)), $idempotency),
             new PaymentController(new InitiatePaymentService(new PdoBookingRepository($this->pdo), new PdoPaymentRepository($this->pdo), new StubStripeGateway()), $idempotency),
             new StripeWebhookController(new StripeSignatureVerifier('test_webhook_secret'), new PdoStripeWebhookEventRepository($this->pdo), new StripeWebhookDispatcher()),
         );
+    }
+
+    public function testOpeningCreationIsIdempotent(): void
+    {
+        $headers = $this->actorHeaders(['provider']);
+        $headers['Idempotency-Key'] = 'idem-opening-1';
+        $payload = [
+            'service_offering_id' => 'offering-1',
+            'starts_at' => '2026-03-29T12:00:00Z',
+            'ends_at' => '2026-03-29T12:30:00Z',
+            'price_override' => ['currency' => 'EUR', 'amount_minor' => 2200],
+        ];
+
+        $request = new Request('POST', '/api/v1/providers/provider-1/openings', $headers, $payload);
+        $first = $this->router->dispatch($request);
+        self::assertSame(201, $first->statusCode);
+        self::assertSame('draft', $first->body['data']['status']);
+        self::assertFalse($first->body['meta']['idempotency_replayed']);
+
+        $second = $this->router->dispatch($request);
+        self::assertSame(201, $second->statusCode);
+        self::assertTrue($second->body['meta']['idempotency_replayed']);
+        self::assertSame($first->body['data']['opening_id'], $second->body['data']['opening_id']);
+    }
+
+    public function testProviderCanListAndGetOwnOpenings(): void
+    {
+        $headers = $this->actorHeaders(['provider']);
+
+        $list = $this->router->dispatch(new Request('GET', '/api/v1/providers/provider-1/openings?status=published', $headers, []));
+        self::assertSame(200, $list->statusCode);
+        self::assertCount(2, $list->body['data']);
+
+        $get = $this->router->dispatch(new Request('GET', '/api/v1/providers/provider-1/openings/opening-1', $headers, []));
+        self::assertSame(200, $get->statusCode);
+        self::assertSame('opening-1', $get->body['data']['opening_id']);
+        self::assertSame('published', $get->body['data']['status']);
+    }
+
+    public function testProviderCanPublishDraftOpening(): void
+    {
+        $this->pdo->exec("INSERT INTO openings (id, provider_id, service_offering_id, starts_at, ends_at, timezone, capacity, status, published_at, cancelled_at, created_at, updated_at, price_amount, price_currency) VALUES ('opening-draft-1', 'provider-1', 'offering-1', '2026-03-29T13:00:00Z', '2026-03-29T13:30:00Z', 'UTC', 1, 'draft', NULL, NULL, '2026-03-26T10:00:00Z', '2026-03-26T10:00:00Z', 2200, 'EUR')");
+
+        $headers = $this->actorHeaders(['provider']);
+        $headers['Idempotency-Key'] = 'idem-opening-publish-1';
+        $response = $this->router->dispatch(new Request('POST', '/api/v1/providers/provider-1/openings/opening-draft-1:publish', $headers, []));
+
+        self::assertSame(200, $response->statusCode);
+        self::assertSame('published', $response->body['data']['status']);
+        self::assertNotNull($response->body['data']['published_at']);
+    }
+
+    public function testProviderCanCancelPublishedOpening(): void
+    {
+        $headers = $this->actorHeaders(['provider']);
+        $headers['Idempotency-Key'] = 'idem-opening-cancel-1';
+        $response = $this->router->dispatch(new Request('POST', '/api/v1/providers/provider-1/openings/opening-2:cancel', $headers, []));
+
+        self::assertSame(200, $response->statusCode);
+        self::assertSame('cancelled_by_provider', $response->body['data']['status']);
+        self::assertNotNull($response->body['data']['cancelled_at']);
+    }
+
+    public function testPublicCanListPublishedOpenings(): void
+    {
+        $response = $this->router->dispatch(new Request('GET', '/api/v1/public/openings?provider_id=provider-1&max_price_minor=2300', [], []));
+
+        self::assertSame(200, $response->statusCode);
+        self::assertCount(2, $response->body['data']);
+        self::assertSame('published', $response->body['data'][0]['status']);
     }
 
     public function testBookingCreationIsIdempotent(): void
@@ -642,11 +728,19 @@ final class MilestoneOneTest extends TestCase
 
     private function seedFixtureData(): void
     {
-        $now = (new \DateTimeImmutable())->format(DATE_ATOM);
-        $this->pdo->exec("INSERT INTO user_profiles (id, identity_subject, status, created_at, updated_at) VALUES ('profile-client-1', 'sso|user_1', 'active', '$now', '$now')");
-        $this->pdo->exec("INSERT INTO providers (id, provider_type, owner_user_profile_id, organization_id, status, created_at, updated_at) VALUES ('provider-1', 'individual', 'profile-client-1', NULL, 'active', '$now', '$now')");
-        $this->pdo->exec("INSERT INTO service_offerings (id, provider_id, name, description, duration_minutes, price_amount, price_currency, status, created_at, updated_at) VALUES ('offering-1', 'provider-1', 'Haircut', NULL, 30, 2200, 'EUR', 'active', '$now', '$now')");
-        $this->pdo->exec("INSERT INTO openings (id, provider_id, service_offering_id, starts_at, ends_at, timezone, capacity, status, published_at, created_at, updated_at, price_amount, price_currency) VALUES ('opening-1', 'provider-1', 'offering-1', '$now', '$now', 'UTC', 1, 'published', '$now', '$now', '$now', 2200, 'EUR')");
-        $this->pdo->exec("INSERT INTO openings (id, provider_id, service_offering_id, starts_at, ends_at, timezone, capacity, status, published_at, created_at, updated_at, price_amount, price_currency) VALUES ('opening-2', 'provider-1', 'offering-1', '$now', '$now', 'UTC', 1, 'published', '$now', '$now', '$now', 2200, 'EUR')");
+        $now = new \DateTimeImmutable('2026-03-26T10:00:00Z');
+        $later = $now->modify('+30 minutes');
+        $laterTwo = $later->modify('+30 minutes');
+        $laterThree = $laterTwo->modify('+30 minutes');
+        $nowIso = $now->format(DATE_ATOM);
+        $laterIso = $later->format(DATE_ATOM);
+        $laterTwoIso = $laterTwo->format(DATE_ATOM);
+        $laterThreeIso = $laterThree->format(DATE_ATOM);
+
+        $this->pdo->exec("INSERT INTO user_profiles (id, identity_subject, status, created_at, updated_at) VALUES ('profile-client-1', 'sso|user_1', 'active', '$nowIso', '$nowIso')");
+        $this->pdo->exec("INSERT INTO providers (id, provider_type, owner_user_profile_id, organization_id, status, created_at, updated_at) VALUES ('provider-1', 'individual', 'profile-client-1', NULL, 'active', '$nowIso', '$nowIso')");
+        $this->pdo->exec("INSERT INTO service_offerings (id, provider_id, name, description, duration_minutes, price_amount, price_currency, status, created_at, updated_at) VALUES ('offering-1', 'provider-1', 'Haircut', NULL, 30, 2200, 'EUR', 'active', '$nowIso', '$nowIso')");
+        $this->pdo->exec("INSERT INTO openings (id, provider_id, service_offering_id, starts_at, ends_at, timezone, capacity, status, published_at, cancelled_at, created_at, updated_at, price_amount, price_currency) VALUES ('opening-1', 'provider-1', 'offering-1', '$laterIso', '$laterTwoIso', 'UTC', 1, 'published', '$nowIso', NULL, '$nowIso', '$nowIso', 2200, 'EUR')");
+        $this->pdo->exec("INSERT INTO openings (id, provider_id, service_offering_id, starts_at, ends_at, timezone, capacity, status, published_at, cancelled_at, created_at, updated_at, price_amount, price_currency) VALUES ('opening-2', 'provider-1', 'offering-1', '$laterTwoIso', '$laterThreeIso', 'UTC', 1, 'published', '$nowIso', NULL, '$nowIso', '$nowIso', 2200, 'EUR')");
     }
 }

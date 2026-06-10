@@ -25,7 +25,7 @@ This file is the stable, high-level backend foundation for **U zadnji čas (Last
 
 ## Locked business rules
 
-- Providers publish last-minute openings/slots.
+- Providers publish last-minute openings.
 - Clients reserve/book and pay.
 - Clients cannot cancel.
 - Client no-show is treated as consumed service.

@@ -130,7 +130,7 @@ Rules
 
 Dependencies
 - Payment module
-- Slot module
+- Opening module
 
 #### PRV-03 Service portfolio and pricing integrity
 
@@ -145,7 +145,7 @@ Rules
 - No discount framing, percentage-off labels, or promotional language is permitted in service descriptions.
 
 Dependencies
-- Slot module
+- Opening module
 - Admin module
 
 #### PRV-04 Provider reputation score
@@ -201,7 +201,7 @@ Acceptance criteria
 3. Given my score is below 3.5, then a warning banner explains the consequence and links to admin support.
 4. Given I respond to a client review, then my response appears publicly on the Client Portal within 5 minutes.
 
-## Slot and opening
+## Opening and opening
 
 Providers publish openings via the Provider Portal. Clients discover them via the live feed on the Client Portal. Admins can monitor and manually intervene via the Admin Portal. The 72-hour window, real-time feed updates, and first-come-first-serve logic are non-negotiable platform constraints.
 
@@ -323,7 +323,7 @@ Rules
 - Client cannot have more than 1 in-flight claim attempt at a time across the portal.
 
 Dependencies
-- Slot module
+- Opening module
 - Payment module
 
 #### BKG-02 Booking confirmation and commitment record
@@ -513,7 +513,7 @@ Rules
 - Provider receives email on every payout event with exact net amount and bank reference.
 
 Dependencies
-- Slot module
+- Opening module
 - Booking module
 - Payment module
 
@@ -682,7 +682,7 @@ Rules
 Dependencies
 - Payment module
 - Payout module
-- Slot module
+- Opening module
 
 #### ADM-03 Commitment failure enforcement and moderation
 
@@ -772,7 +772,7 @@ Rules
 - No opening alerts are sent if the client already has a confirmed booking in the same time window.
 
 Dependencies
-- Slot module
+- Opening module
 - Authentication module
 
 #### NOT-02 Booking confirmation and appointment reminders

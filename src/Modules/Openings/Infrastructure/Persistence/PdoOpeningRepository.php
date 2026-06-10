@@ -13,6 +13,14 @@ final class PdoOpeningRepository implements OpeningRepository
     {
     }
 
+    public function serviceOfferingBelongsToProvider(string $serviceOfferingId, string $providerId): bool
+    {
+        $stmt = $this->pdo->prepare('SELECT 1 FROM service_offerings WHERE id = :id AND provider_id = :provider_id LIMIT 1');
+        $stmt->execute(['id' => $serviceOfferingId, 'provider_id' => $providerId]);
+
+        return $stmt->fetchColumn() !== false;
+    }
+
     public function createDraft(array $data): array
     {
         $id = self::uuid();
@@ -33,14 +41,97 @@ final class PdoOpeningRepository implements OpeningRepository
             'price_currency' => $data['price_currency'],
         ]);
 
-        return [
-            'opening_id' => $id,
-            'provider_id' => $data['provider_id'],
-            'service_offering_id' => $data['service_offering_id'],
-            'starts_at' => $data['starts_at'],
-            'ends_at' => $data['ends_at'],
-            'status' => 'draft',
-        ];
+        return $this->mustFindById($id);
+    }
+
+    public function findById(string $openingId): ?array
+    {
+        $stmt = $this->pdo->prepare('SELECT * FROM openings WHERE id = :id LIMIT 1');
+        $stmt->execute(['id' => $openingId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row === false ? null : $this->mapOpening($row);
+    }
+
+    public function findByProviderIdAndId(string $providerId, string $openingId): ?array
+    {
+        $stmt = $this->pdo->prepare('SELECT * FROM openings WHERE provider_id = :provider_id AND id = :id LIMIT 1');
+        $stmt->execute(['provider_id' => $providerId, 'id' => $openingId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row === false ? null : $this->mapOpening($row);
+    }
+
+    public function listByProviderId(string $providerId, ?string $status, int $limit): array
+    {
+        $safeLimit = max(1, min($limit, 100));
+
+        if ($status !== null && trim($status) !== '') {
+            $stmt = $this->pdo->prepare('SELECT * FROM openings WHERE provider_id = :provider_id AND status = :status ORDER BY starts_at ASC LIMIT :limit');
+            $stmt->bindValue(':provider_id', $providerId);
+            $stmt->bindValue(':status', $status);
+            $stmt->bindValue(':limit', $safeLimit, PDO::PARAM_INT);
+            $stmt->execute();
+        } else {
+            $stmt = $this->pdo->prepare('SELECT * FROM openings WHERE provider_id = :provider_id ORDER BY starts_at ASC LIMIT :limit');
+            $stmt->bindValue(':provider_id', $providerId);
+            $stmt->bindValue(':limit', $safeLimit, PDO::PARAM_INT);
+            $stmt->execute();
+        }
+
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        return array_map(fn (array $row): array => $this->mapOpening($row), $rows);
+    }
+
+    public function listPublished(array $filters, int $limit): array
+    {
+        $safeLimit = max(1, min($limit, 100));
+        $conditions = ['status = :status'];
+        $params = ['status' => 'published'];
+
+        if (isset($filters['provider_id']) && trim((string) $filters['provider_id']) !== '') {
+            $conditions[] = 'provider_id = :provider_id';
+            $params['provider_id'] = (string) $filters['provider_id'];
+        }
+
+        if (isset($filters['service_offering_id']) && trim((string) $filters['service_offering_id']) !== '') {
+            $conditions[] = 'service_offering_id = :service_offering_id';
+            $params['service_offering_id'] = (string) $filters['service_offering_id'];
+        }
+
+        if (isset($filters['starts_after']) && trim((string) $filters['starts_after']) !== '') {
+            $conditions[] = 'starts_at >= :starts_after';
+            $params['starts_after'] = (string) $filters['starts_after'];
+        }
+
+        if (isset($filters['starts_before']) && trim((string) $filters['starts_before']) !== '') {
+            $conditions[] = 'starts_at <= :starts_before';
+            $params['starts_before'] = (string) $filters['starts_before'];
+        }
+
+        if (isset($filters['max_price_minor']) && $filters['max_price_minor'] !== '') {
+            $conditions[] = 'price_amount <= :max_price_minor';
+            $params['max_price_minor'] = (int) $filters['max_price_minor'];
+        }
+
+        $stmt = $this->pdo->prepare(
+            sprintf('SELECT * FROM openings WHERE %s ORDER BY starts_at ASC LIMIT :limit', implode(' AND ', $conditions))
+        );
+
+        foreach ($params as $key => $value) {
+            $stmt->bindValue(
+                ':' . $key,
+                $value,
+                is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR,
+            );
+        }
+        $stmt->bindValue(':limit', $safeLimit, PDO::PARAM_INT);
+        $stmt->execute();
+
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        return array_map(fn (array $row): array => $this->mapOpening($row), $rows);
     }
 
     public function lockById(string $openingId): ?array
@@ -60,6 +151,67 @@ final class PdoOpeningRepository implements OpeningRepository
     {
         $stmt = $this->pdo->prepare('UPDATE openings SET status=:status, updated_at=:updated_at WHERE id=:id');
         $stmt->execute(['id' => $openingId, 'status' => $status, 'updated_at' => (new \DateTimeImmutable())->format(DATE_ATOM)]);
+    }
+
+    public function publish(string $openingId): array
+    {
+        $publishedAt = (new \DateTimeImmutable())->format(DATE_ATOM);
+        $stmt = $this->pdo->prepare('UPDATE openings SET status = :status, published_at = :published_at, updated_at = :updated_at WHERE id = :id');
+        $stmt->execute([
+            'id' => $openingId,
+            'status' => 'published',
+            'published_at' => $publishedAt,
+            'updated_at' => $publishedAt,
+        ]);
+
+        return $this->mustFindById($openingId);
+    }
+
+    public function cancel(string $openingId): array
+    {
+        $updatedAt = (new \DateTimeImmutable())->format(DATE_ATOM);
+        $stmt = $this->pdo->prepare('UPDATE openings SET status = :status, cancelled_at = :cancelled_at, updated_at = :updated_at WHERE id = :id');
+        $stmt->execute([
+            'id' => $openingId,
+            'status' => 'cancelled_by_provider',
+            'cancelled_at' => $updatedAt,
+            'updated_at' => $updatedAt,
+        ]);
+
+        return $this->mustFindById($openingId);
+    }
+
+    /** @param array<string, mixed> $row */
+    private function mapOpening(array $row): array
+    {
+        return [
+            'opening_id' => (string) $row['id'],
+            'provider_id' => (string) $row['provider_id'],
+            'service_offering_id' => (string) $row['service_offering_id'],
+            'starts_at' => (string) $row['starts_at'],
+            'ends_at' => (string) $row['ends_at'],
+            'timezone' => (string) $row['timezone'],
+            'capacity' => (int) $row['capacity'],
+            'status' => (string) $row['status'],
+            'published_at' => $row['published_at'] !== null ? (string) $row['published_at'] : null,
+            'cancelled_at' => isset($row['cancelled_at']) && $row['cancelled_at'] !== null ? (string) $row['cancelled_at'] : null,
+            'created_at' => isset($row['created_at']) ? (string) $row['created_at'] : null,
+            'updated_at' => isset($row['updated_at']) ? (string) $row['updated_at'] : null,
+            'price_snapshot' => [
+                'currency' => (string) $row['price_currency'],
+                'amount_minor' => (int) $row['price_amount'],
+            ],
+        ];
+    }
+
+    private function mustFindById(string $openingId): array
+    {
+        $opening = $this->findById($openingId);
+        if ($opening === null) {
+            throw new \RuntimeException('Opening row was not found after persistence write.');
+        }
+
+        return $opening;
     }
 
     private static function uuid(): string

@@ -60,7 +60,7 @@ The target provider is a high-end restaurant/food and drink establishment, show/
 
 The provider experiences occasional last-minute cancellations or unused premium capacity.
 
-The provider values monetizing empty slots without damaging brand perception.
+The provider values monetizing empty openings without damaging brand perception.
 
 The provider is willing to operate under strict reliability standards.
 

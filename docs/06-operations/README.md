@@ -30,19 +30,19 @@ Providers must understand cancellation and payment policies.
 
 Approval criteria ensure that the marketplace maintains premium perception.
 
-### Slot publishing government
+### Opening publishing government
 
-Providers are responsible for creating and publishing slots.
+Providers are responsible for creating and publishing openings.
 
-Slots must represent genuine last-minute availability.
+Openings must represent genuine last-minute availability.
 
-Providers must ensure that published slots are actually fulfillable.
+Providers must ensure that published openings are actually fulfillable.
 
 Providers should avoid publishing speculative availability.
 
-Repeated publishing of unreliable slots may result in warnings or suspension.
+Repeated publishing of unreliable openings may result in warnings or suspension.
 
-Slot governance maintains trust in the marketplace.
+Opening governance maintains trust in the marketplace.
 
 ### Cancellation monitoring
 

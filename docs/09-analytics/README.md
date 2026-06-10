@@ -4,7 +4,7 @@
 
 Metrics must measure the health of both sides of the marketplace.
 
-Supply-side metrics track provider reliability and slot availability.
+Supply-side metrics track provider reliability and opening availability.
 
 Demand-side metrics track user behavior and booking conversion.
 
@@ -36,13 +36,13 @@ Balanced growth between providers and users indicates marketplace stability.
 
 The booking funnel measures how users move from discovery to confirmed booking.
 
-Key stages include: Slot view – user opens slot details.
+Key stages include: Opening view – user opens opening details.
 
 Booking attempt – user initiates checkout.
 
 Payment success – Stripe payment is confirmed.
 
-Booking confirmed – slot transitions to booked state.
+Booking confirmed – opening transitions to booked state.
 
 Conversion rate between these steps reveals UX friction or payment issues.
 
@@ -54,11 +54,11 @@ Provider supply metrics track the availability and reliability of providers.
 
 Total providers represent overall marketplace supply.
 
-Active providers represent providers currently publishing slots.
+Active providers represent providers currently publishing openings.
 
-Slots published represent total available inventory.
+Openings published represent total available inventory.
 
-Slots booked represent successful supply utilization.
+Openings booked represent successful supply utilization.
 
 Provider cancellation rate measures reliability.
 
@@ -130,7 +130,7 @@ Early signals of product-market fit include increasing booking volume.
 
 Repeat bookings from users indicate strong demand.
 
-Providers voluntarily publishing more slots indicates supply confidence.
+Providers voluntarily publishing more openings indicates supply confidence.
 
 Low cancellation rates indicate marketplace trust.
 
@@ -142,9 +142,9 @@ These signals guide early product iteration decisions.
 
 Future analytics may include advanced provider dashboards.
 
-Predictive analytics may forecast slot demand.
+Predictive analytics may forecast opening demand.
 
-Dynamic pricing analytics may optimize slot monetization.
+Dynamic pricing analytics may optimize opening monetization.
 
 Personalized recommendations may improve user discovery.
 
