@@ -29,6 +29,8 @@ use App\Modules\AdminSetup\Infrastructure\Persistence\PdoOrganizationRepository;
 use App\Modules\AdminSetup\Infrastructure\Persistence\PdoUserRepository;
 use App\Modules\Booking\Api\BookingController;
 use App\Modules\Booking\Application\Service\CreateBookingService;
+use App\Modules\Booking\Application\Service\GetBookingService;
+use App\Modules\Booking\Application\Service\ListMyBookingsService;
 use App\Modules\Booking\Infrastructure\Persistence\PdoBookingRepository;
 use App\Modules\IdentityAccess\Api\ApiKeyController;
 use App\Modules\IdentityAccess\Api\AuthController;
@@ -119,7 +121,12 @@ final class AppKernel
                 new CancelOpeningService($tx, $openingRepository, $openingAccess),
                 $idempotency
             ),
-            new BookingController(new CreateBookingService($tx, $openingRepository, new PdoBookingRepository($pdo)), $idempotency),
+            new BookingController(
+                new CreateBookingService($tx, $openingRepository, new PdoBookingRepository($pdo)),
+                new GetBookingService(new PdoBookingRepository($pdo), new PdoPaymentRepository($pdo), $providerRepository),
+                new ListMyBookingsService(new PdoBookingRepository($pdo)),
+                $idempotency
+            ),
             new PaymentController(new InitiatePaymentService(new PdoBookingRepository($pdo), new PdoPaymentRepository($pdo), new StubStripeGateway()), $idempotency),
             new StripeWebhookController(new StripeSignatureVerifier($stripeWebhookSecret), new PdoStripeWebhookEventRepository($pdo), new StripeWebhookDispatcher()),
         );

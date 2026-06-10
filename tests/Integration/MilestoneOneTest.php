@@ -28,6 +28,8 @@ use App\Modules\AdminSetup\Infrastructure\Persistence\PdoOrganizationRepository;
 use App\Modules\AdminSetup\Infrastructure\Persistence\PdoUserRepository;
 use App\Modules\Booking\Api\BookingController;
 use App\Modules\Booking\Application\Service\CreateBookingService;
+use App\Modules\Booking\Application\Service\GetBookingService;
+use App\Modules\Booking\Application\Service\ListMyBookingsService;
 use App\Modules\Booking\Infrastructure\Persistence\PdoBookingRepository;
 use App\Modules\IdentityAccess\Api\ApiKeyController;
 use App\Modules\IdentityAccess\Api\AuthController;
@@ -126,7 +128,12 @@ final class MilestoneOneTest extends TestCase
                 new CancelOpeningService($tx, $openingRepository, $openingAccess),
                 $idempotency
             ),
-            new BookingController(new CreateBookingService($tx, $openingRepository, new PdoBookingRepository($this->pdo)), $idempotency),
+            new BookingController(
+                new CreateBookingService($tx, $openingRepository, new PdoBookingRepository($this->pdo)),
+                new GetBookingService(new PdoBookingRepository($this->pdo), new PdoPaymentRepository($this->pdo), $providerRepository),
+                new ListMyBookingsService(new PdoBookingRepository($this->pdo)),
+                $idempotency
+            ),
             new PaymentController(new InitiatePaymentService(new PdoBookingRepository($this->pdo), new PdoPaymentRepository($this->pdo), new StubStripeGateway()), $idempotency),
             new StripeWebhookController(new StripeSignatureVerifier('test_webhook_secret'), new PdoStripeWebhookEventRepository($this->pdo), new StripeWebhookDispatcher()),
         );
@@ -216,6 +223,89 @@ final class MilestoneOneTest extends TestCase
         self::assertSame(201, $second->statusCode);
         self::assertTrue($second->body['meta']['idempotency_replayed']);
         self::assertSame($first->body['data']['booking_id'], $second->body['data']['booking_id']);
+    }
+
+    public function testClientCanReadOwnBookingWithPaymentSummary(): void
+    {
+        $headers = $this->actorHeaders(['client']);
+        $headers['Idempotency-Key'] = 'idem-booking-read-1';
+        $created = $this->router->dispatch(new Request('POST', '/api/v1/bookings', $headers, ['opening_id' => 'opening-1']));
+        self::assertSame(201, $created->statusCode);
+        $bookingId = $created->body['data']['booking_id'];
+
+        $response = $this->router->dispatch(new Request('GET', "/api/v1/bookings/$bookingId", $this->actorHeaders(['client']), []));
+        self::assertSame(200, $response->statusCode);
+        self::assertSame($bookingId, $response->body['data']['booking_id']);
+        self::assertSame('reserved', $response->body['data']['state']);
+        self::assertSame(['currency' => 'EUR', 'amount_minor' => 2200], $response->body['data']['amount']);
+        self::assertNull($response->body['data']['payment']);
+
+        $payHeaders = $this->actorHeaders(['client']);
+        $payHeaders['Idempotency-Key'] = 'idem-booking-read-pay-1';
+        $payment = $this->router->dispatch(new Request('POST', "/api/v1/bookings/$bookingId/payments/initiate", $payHeaders, ['payment_method_type' => 'card']));
+        self::assertSame(201, $payment->statusCode);
+
+        $withPayment = $this->router->dispatch(new Request('GET', "/api/v1/bookings/$bookingId", $this->actorHeaders(['client']), []));
+        self::assertSame(200, $withPayment->statusCode);
+        self::assertSame('initiated', $withPayment->body['data']['payment']['state']);
+        self::assertSame(['currency' => 'EUR', 'amount_minor' => 2200], $withPayment->body['data']['payment']['amount']);
+    }
+
+    public function testAdminCanReadAnyBooking(): void
+    {
+        $headers = $this->actorHeaders(['client']);
+        $headers['Idempotency-Key'] = 'idem-booking-read-2';
+        $created = $this->router->dispatch(new Request('POST', '/api/v1/bookings', $headers, ['opening_id' => 'opening-1']));
+        $bookingId = $created->body['data']['booking_id'];
+
+        $response = $this->router->dispatch(new Request('GET', "/api/v1/bookings/$bookingId", $this->actorHeaders(['admin']), []));
+        self::assertSame(200, $response->statusCode);
+        self::assertSame($bookingId, $response->body['data']['booking_id']);
+    }
+
+    public function testBookingReadDeniedForUnrelatedActor(): void
+    {
+        $headers = $this->actorHeaders(['client']);
+        $headers['Idempotency-Key'] = 'idem-booking-read-3';
+        $created = $this->router->dispatch(new Request('POST', '/api/v1/bookings', $headers, ['opening_id' => 'opening-1']));
+        $bookingId = $created->body['data']['booking_id'];
+
+        $otherHeaders = [
+            'X-Actor-Id' => 'actor-2',
+            'X-Actor-Subject' => 'sso|user_2',
+            'X-Actor-Roles' => 'client',
+            'X-User-Profile-Id' => 'profile-client-2',
+        ];
+        $response = $this->router->dispatch(new Request('GET', "/api/v1/bookings/$bookingId", $otherHeaders, []));
+        self::assertSame(403, $response->statusCode);
+        self::assertSame('FORBIDDEN_BOOKING_SCOPE', $response->body['error']['code']);
+    }
+
+    public function testUnknownBookingReturnsNotFound(): void
+    {
+        $response = $this->router->dispatch(new Request('GET', '/api/v1/bookings/missing-booking', $this->actorHeaders(['client']), []));
+        self::assertSame(404, $response->statusCode);
+        self::assertSame('BOOKING_NOT_FOUND', $response->body['error']['code']);
+    }
+
+    public function testClientCanListOwnBookings(): void
+    {
+        $headers = $this->actorHeaders(['client']);
+        $headers['Idempotency-Key'] = 'idem-booking-list-1';
+        $created = $this->router->dispatch(new Request('POST', '/api/v1/bookings', $headers, ['opening_id' => 'opening-1']));
+        $bookingId = $created->body['data']['booking_id'];
+
+        $response = $this->router->dispatch(new Request('GET', '/api/v1/me/bookings', $this->actorHeaders(['client']), []));
+        self::assertSame(200, $response->statusCode);
+        self::assertCount(1, $response->body['data']);
+        self::assertSame($bookingId, $response->body['data'][0]['booking_id']);
+
+        $filtered = $this->router->dispatch(new Request('GET', '/api/v1/me/bookings?state=confirmed', $this->actorHeaders(['client']), []));
+        self::assertSame(200, $filtered->statusCode);
+        self::assertCount(0, $filtered->body['data']);
+
+        $denied = $this->router->dispatch(new Request('GET', '/api/v1/me/bookings', $this->actorHeaders(['provider']), []));
+        self::assertSame(403, $denied->statusCode);
     }
 
     public function testPaymentInitiationCreatesThenReplays(): void

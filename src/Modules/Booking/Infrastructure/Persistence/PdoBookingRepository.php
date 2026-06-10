@@ -57,6 +57,59 @@ final class PdoBookingRepository implements BookingRepository
         return $row === false ? null : $row;
     }
 
+    public function findDetailById(string $bookingId): ?array
+    {
+        $row = $this->findById($bookingId);
+        return $row === null ? null : $this->mapBooking($row);
+    }
+
+    public function listByClientProfileId(string $clientProfileId, ?string $state, int $limit): array
+    {
+        $safeLimit = max(1, min($limit, 100));
+        $sql = 'SELECT * FROM bookings WHERE client_user_profile_id = :client_profile';
+        $params = ['client_profile' => $clientProfileId];
+
+        if ($state !== null && trim($state) !== '') {
+            $sql .= ' AND state = :state';
+            $params['state'] = $state;
+        }
+
+        $sql .= ' ORDER BY created_at DESC LIMIT :limit';
+        $stmt = $this->pdo->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue(':' . $key, $value);
+        }
+        $stmt->bindValue(':limit', $safeLimit, PDO::PARAM_INT);
+        $stmt->execute();
+
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        return array_map(fn (array $row): array => $this->mapBooking($row), $rows);
+    }
+
+    /** @param array<string, mixed> $row
+     *  @return array<string, mixed>
+     */
+    private function mapBooking(array $row): array
+    {
+        return [
+            'booking_id' => $row['id'],
+            'opening_id' => $row['opening_id'],
+            'provider_id' => $row['provider_id'],
+            'client_user_profile_id' => $row['client_user_profile_id'],
+            'state' => $row['state'],
+            'reserved_at' => $row['created_at'],
+            'expires_at' => $row['reservation_expires_at'],
+            'amount' => ['currency' => $row['payment_currency'], 'amount_minor' => (int) $row['payment_required_amount']],
+            'no_show_actor' => $row['no_show_actor'],
+            'no_show_recorded_at' => $row['no_show_recorded_at'],
+            'confirmed_at' => $row['confirmed_at'],
+            'completed_at' => $row['completed_at'],
+            'created_at' => $row['created_at'],
+            'updated_at' => $row['updated_at'],
+        ];
+    }
+
     private static function uuid(): string
     {
         $data = random_bytes(16);

@@ -11,4 +11,10 @@ interface BookingRepository
     public function createReserved(array $booking): array;
 
     public function findById(string $bookingId): ?array;
+
+    /** @return array<string, mixed>|null */
+    public function findDetailById(string $bookingId): ?array;
+
+    /** @return list<array<string, mixed>> */
+    public function listByClientProfileId(string $clientProfileId, ?string $state, int $limit): array;
 }

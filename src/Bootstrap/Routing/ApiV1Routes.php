@@ -174,6 +174,16 @@ final class ApiV1Routes
             return $bookings->create($actor, $request);
         });
 
+        $router->add('GET', '/api/v1/bookings/{booking_id}', function (Request $request, array $params) use ($bookings) {
+            $actor = $this->resolver->resolve($request->headers);
+            return $bookings->get($actor, $params['booking_id']);
+        });
+
+        $router->add('GET', '/api/v1/me/bookings', function (Request $request) use ($bookings) {
+            $actor = $this->resolver->resolve($request->headers);
+            return $bookings->listMine($actor, $request);
+        });
+
         $router->add('POST', '/api/v1/bookings/{booking_id}/payments/initiate', function (Request $request, array $params) use ($payments) {
             $actor = $this->resolver->resolve($request->headers);
             return $payments->initiate($actor, $request, $params['booking_id']);
