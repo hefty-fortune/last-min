@@ -23,3 +23,10 @@ docker-compose.override.yml
 
 # Logs
 *.log
+
+# PHPUnit
+.phpunit.result.cache
+
+# Local secrets / dev tokens
+admin-token.txt
+*-token.txt
