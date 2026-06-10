@@ -84,8 +84,10 @@ use App\Modules\ServiceCatalog\Application\Service\ListOfferingsService;
 use App\Modules\ServiceCatalog\Application\Service\OfferingAccessService;
 use App\Modules\ServiceCatalog\Application\Service\UpdateOfferingService;
 use App\Modules\ServiceCatalog\Infrastructure\Persistence\PdoOfferingRepository;
+use App\Platform\Audit\PdoAuditLogger;
 use App\Platform\Idempotency\IdempotencyExecutor;
 use App\Platform\Idempotency\PdoIdempotencyStore;
+use App\Platform\Outbox\PdoOutboxMessageStore;
 use App\Platform\Integrations\Stripe\StubStripeGateway;
 use App\Platform\Persistence\PdoTransactionManager;
 use App\Platform\Webhooks\Stripe\PdoStripeWebhookEventRepository;
@@ -107,6 +109,8 @@ final class AppKernel
         $openingAccess = new OpeningAccessService($providerRepository);
         $sessions = new PdoAuthSessionRepository($pdo);
         $userAuth = new PdoUserAuthRepository($pdo);
+        $audit = new PdoAuditLogger($pdo);
+        $outbox = new PdoOutboxMessageStore($pdo);
 
         $bearerResolver = new CompositeBearerTokenActorResolver([
             new SessionBearerTokenActorResolver($sessions, $pdo),
@@ -160,7 +164,9 @@ final class AppKernel
                     $tx,
                     new PdoBookingRepository($pdo),
                     $providerRepository,
-                    new RequestRefundService(new PdoPaymentRepository($pdo), new PdoRefundRepository($pdo))
+                    new RequestRefundService(new PdoPaymentRepository($pdo), new PdoRefundRepository($pdo)),
+                    $audit,
+                    $outbox
                 ),
                 $idempotency
             ),
@@ -171,7 +177,7 @@ final class AppKernel
             ),
             new RefundController(
                 new ListBookingRefundsService(new PdoRefundRepository($pdo), new PdoBookingRepository($pdo), $providerRepository),
-                new ApproveRefundService(new PdoRefundRepository($pdo)),
+                new ApproveRefundService(new PdoRefundRepository($pdo), $audit, $outbox),
                 $idempotency
             ),
             new OfferingController(
@@ -188,7 +194,7 @@ final class AppKernel
             ),
             new AdminOpsController(
                 new AdminOpsQueryService(new PdoAdminOpsReadRepository($pdo)),
-                new ForceExpireOpeningService($tx, $openingRepository),
+                new ForceExpireOpeningService($tx, $openingRepository, $audit),
                 $idempotency
             ),
             new StripeWebhookController(new StripeSignatureVerifier($stripeWebhookSecret), new PdoStripeWebhookEventRepository($pdo), new StripeWebhookDispatcher()),

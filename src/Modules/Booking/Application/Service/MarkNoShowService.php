@@ -10,6 +10,8 @@ use App\Common\Security\ActorContext;
 use App\Modules\Booking\Application\Port\BookingRepository;
 use App\Modules\Providers\Application\Port\ProviderRepository;
 use App\Modules\Refunds\Application\Service\RequestRefundService;
+use App\Platform\Audit\AuditLogger;
+use App\Platform\Outbox\OutboxMessageStore;
 use App\Platform\Persistence\TransactionManager;
 
 final class MarkNoShowService
@@ -19,6 +21,8 @@ final class MarkNoShowService
         private BookingRepository $bookings,
         private ProviderRepository $providers,
         private RequestRefundService $refundRequests,
+        private AuditLogger $audit,
+        private OutboxMessageStore $outbox,
     ) {
     }
 
@@ -57,6 +61,13 @@ final class MarkNoShowService
                 // workflow, atomically with the state transition.
                 $this->refundRequests->requestForBooking($bookingId, 'provider_no_show');
             }
+
+            $this->audit->record($actor, "booking.mark-$noShowActor-no-show", 'booking', $bookingId, ['state' => $targetState]);
+            $this->outbox->enqueue("booking.$targetState", [
+                'booking_id' => $bookingId,
+                'provider_id' => $booking['provider_id'],
+                'client_user_profile_id' => $booking['client_user_profile_id'],
+            ]);
 
             return $updated;
         });

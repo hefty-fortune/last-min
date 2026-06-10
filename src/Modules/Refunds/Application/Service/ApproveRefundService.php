@@ -8,11 +8,16 @@ use App\Common\Api\ApiError;
 use App\Common\Api\ApiException;
 use App\Common\Security\ActorContext;
 use App\Modules\Refunds\Application\Port\RefundRepository;
+use App\Platform\Audit\AuditLogger;
+use App\Platform\Outbox\OutboxMessageStore;
 
 final class ApproveRefundService
 {
-    public function __construct(private RefundRepository $refunds)
-    {
+    public function __construct(
+        private RefundRepository $refunds,
+        private AuditLogger $audit,
+        private OutboxMessageStore $outbox,
+    ) {
     }
 
     /**
@@ -36,6 +41,15 @@ final class ApproveRefundService
             throw new ApiException(409, new ApiError('REFUND_STATE_INVALID', 'Only requested refunds can be approved.'));
         }
 
-        return $this->refunds->recordDecision($refundId, 'pending', $actor->actorId, $note);
+        $approved = $this->refunds->recordDecision($refundId, 'pending', $actor->actorId, $note);
+
+        $this->audit->record($actor, 'refund.approve', 'refund', $refundId, ['note' => $note]);
+        $this->outbox->enqueue('refund.approved', [
+            'refund_id' => $refundId,
+            'payment_id' => $approved['payment_id'],
+            'booking_id' => $approved['booking_id'],
+        ]);
+
+        return $approved;
     }
 }

@@ -82,7 +82,10 @@ use App\Modules\ServiceCatalog\Application\Service\ListOfferingsService;
 use App\Modules\ServiceCatalog\Application\Service\OfferingAccessService;
 use App\Modules\ServiceCatalog\Application\Service\UpdateOfferingService;
 use App\Modules\ServiceCatalog\Infrastructure\Persistence\PdoOfferingRepository;
+use App\Platform\Audit\PdoAuditLogger;
 use App\Platform\Idempotency\IdempotencyExecutor;
+use App\Platform\Outbox\OutboxProcessor;
+use App\Platform\Outbox\PdoOutboxMessageStore;
 use App\Platform\Idempotency\PdoIdempotencyStore;
 use App\Platform\Integrations\Stripe\StubStripeGateway;
 use App\Platform\Persistence\PdoTransactionManager;
@@ -167,7 +170,9 @@ final class MilestoneOneTest extends TestCase
                     $tx,
                     new PdoBookingRepository($this->pdo),
                     $providerRepository,
-                    new RequestRefundService(new PdoPaymentRepository($this->pdo), new PdoRefundRepository($this->pdo))
+                    new RequestRefundService(new PdoPaymentRepository($this->pdo), new PdoRefundRepository($this->pdo)),
+                    new PdoAuditLogger($this->pdo),
+                    new PdoOutboxMessageStore($this->pdo)
                 ),
                 $idempotency
             ),
@@ -178,7 +183,7 @@ final class MilestoneOneTest extends TestCase
             ),
             new RefundController(
                 new ListBookingRefundsService(new PdoRefundRepository($this->pdo), new PdoBookingRepository($this->pdo), $providerRepository),
-                new ApproveRefundService(new PdoRefundRepository($this->pdo)),
+                new ApproveRefundService(new PdoRefundRepository($this->pdo), new PdoAuditLogger($this->pdo), new PdoOutboxMessageStore($this->pdo)),
                 $idempotency
             ),
             new OfferingController(
@@ -195,7 +200,7 @@ final class MilestoneOneTest extends TestCase
             ),
             new AdminOpsController(
                 new AdminOpsQueryService(new PdoAdminOpsReadRepository($this->pdo)),
-                new ForceExpireOpeningService($tx, $openingRepository),
+                new ForceExpireOpeningService($tx, $openingRepository, new PdoAuditLogger($this->pdo)),
                 $idempotency
             ),
             new StripeWebhookController(new StripeSignatureVerifier('test_webhook_secret'), new PdoStripeWebhookEventRepository($this->pdo), new StripeWebhookDispatcher()),
@@ -854,6 +859,84 @@ final class MilestoneOneTest extends TestCase
         $adminHeaders['Idempotency-Key'] = 'idem-force-expire-3';
         $denied = $this->router->dispatch(new Request('POST', '/api/v1/admin/openings/opening-1:force-expire', $adminHeaders, []));
         self::assertSame(403, $denied->statusCode);
+    }
+
+    public function testNoShowWritesAuditAndOutboxRecords(): void
+    {
+        $bookingId = $this->seedConfirmedBooking('booking-audit-1');
+        $this->seedPaymentForBooking('payment-audit-1', $bookingId);
+
+        $headers = $this->actorHeaders(['provider']);
+        $headers['Idempotency-Key'] = 'idem-audit-noshow-1';
+        $this->router->dispatch(new Request('POST', "/api/v1/bookings/$bookingId:mark-provider-no-show", $headers, []));
+
+        $audit = $this->pdo->query("SELECT * FROM audit_log WHERE resource_type = 'booking' AND resource_id = '$bookingId'")->fetchAll(\PDO::FETCH_ASSOC);
+        self::assertCount(1, $audit);
+        self::assertSame('booking.mark-provider-no-show', $audit[0]['action']);
+        self::assertSame('actor-1', $audit[0]['actor_id']);
+
+        $outbox = $this->pdo->query("SELECT * FROM outbox_messages WHERE message_type = 'booking.provider_no_show'")->fetchAll(\PDO::FETCH_ASSOC);
+        self::assertCount(1, $outbox);
+        self::assertSame('pending', $outbox[0]['status']);
+        $payload = json_decode((string) $outbox[0]['payload'], true);
+        self::assertSame($bookingId, $payload['booking_id']);
+    }
+
+    public function testOutboxProcessorDispatchesAndFails(): void
+    {
+        $store = new PdoOutboxMessageStore($this->pdo);
+        $okId = $store->enqueue('test.ok', ['value' => 1]);
+        $boomId = $store->enqueue('test.boom', ['value' => 2]);
+        $unknownId = $store->enqueue('test.unknown', []);
+
+        $handled = [];
+        $processor = new OutboxProcessor($store, maxAttempts: 2);
+        $processor->register('test.ok', function (array $payload) use (&$handled): void {
+            $handled[] = $payload['value'];
+        });
+        $processor->register('test.boom', function (): void {
+            throw new \RuntimeException('handler exploded');
+        });
+
+        $first = $processor->processPending();
+        self::assertSame(['dispatched' => 1, 'failed' => 1, 'skipped' => 1], $first);
+        self::assertSame([1], $handled);
+
+        $statuses = $this->pdo->query('SELECT id, status, attempts, last_error FROM outbox_messages')->fetchAll(\PDO::FETCH_ASSOC);
+        $byId = array_column($statuses, null, 'id');
+        self::assertSame('dispatched', $byId[$okId]['status']);
+        self::assertSame('failed', $byId[$unknownId]['status']);
+        self::assertSame('pending', $byId[$boomId]['status']);
+        self::assertSame(1, (int) $byId[$boomId]['attempts']);
+
+        $second = $processor->processPending();
+        self::assertSame(['dispatched' => 0, 'failed' => 1, 'skipped' => 0], $second);
+        $boomRow = $this->pdo->query("SELECT status, attempts FROM outbox_messages WHERE id = '$boomId'")->fetch(\PDO::FETCH_ASSOC);
+        self::assertSame('failed', $boomRow['status']);
+        self::assertSame(2, (int) $boomRow['attempts']);
+    }
+
+    public function testRefundApprovalWritesAuditAndOutbox(): void
+    {
+        $bookingId = $this->seedConfirmedBooking('booking-audit-2');
+        $this->seedPaymentForBooking('payment-audit-2', $bookingId);
+
+        $noShowHeaders = $this->actorHeaders(['provider']);
+        $noShowHeaders['Idempotency-Key'] = 'idem-audit-noshow-2';
+        $this->router->dispatch(new Request('POST', "/api/v1/bookings/$bookingId:mark-provider-no-show", $noShowHeaders, []));
+
+        $refunds = $this->router->dispatch(new Request('GET', "/api/v1/bookings/$bookingId/refunds", $this->actorHeaders(['admin']), []));
+        $refundId = $refunds->body['data'][0]['refund_id'];
+
+        $approveHeaders = $this->actorHeaders(['admin']);
+        $approveHeaders['Idempotency-Key'] = 'idem-audit-approve-1';
+        $this->router->dispatch(new Request('POST', "/api/v1/refunds/$refundId:approve", $approveHeaders, ['note' => 'ok']));
+
+        $audit = $this->pdo->query("SELECT * FROM audit_log WHERE action = 'refund.approve' AND resource_id = '$refundId'")->fetchAll(\PDO::FETCH_ASSOC);
+        self::assertCount(1, $audit);
+
+        $outbox = $this->pdo->query("SELECT * FROM outbox_messages WHERE message_type = 'refund.approved'")->fetchAll(\PDO::FETCH_ASSOC);
+        self::assertCount(1, $outbox);
     }
 
     public function testClientCanListOwnBookings(): void

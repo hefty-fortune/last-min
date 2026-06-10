@@ -8,6 +8,7 @@ use App\Common\Api\ApiError;
 use App\Common\Api\ApiException;
 use App\Common\Security\ActorContext;
 use App\Modules\Openings\Application\Port\OpeningRepository;
+use App\Platform\Audit\AuditLogger;
 use App\Platform\Persistence\TransactionManager;
 
 final class ForceExpireOpeningService
@@ -17,6 +18,7 @@ final class ForceExpireOpeningService
     public function __construct(
         private TransactionManager $tx,
         private OpeningRepository $openings,
+        private AuditLogger $audit,
     ) {
     }
 
@@ -27,7 +29,7 @@ final class ForceExpireOpeningService
             throw new ApiException(403, new ApiError('FORBIDDEN_ROLE_MISSING', 'Super-admin role is required.'));
         }
 
-        return $this->tx->withinTransaction(function () use ($openingId): array {
+        return $this->tx->withinTransaction(function () use ($actor, $openingId): array {
             $opening = $this->openings->lockById($openingId);
             if ($opening === null) {
                 throw new ApiException(404, new ApiError('OPENING_NOT_FOUND', 'Opening was not found.'));
@@ -37,6 +39,8 @@ final class ForceExpireOpeningService
             }
 
             $this->openings->updateStatus($openingId, 'expired');
+
+            $this->audit->record($actor, 'admin.opening.force-expire', 'opening', $openingId, ['previous_status' => $opening['status']]);
 
             return ['opening_id' => $openingId, 'status' => 'expired'];
         });
