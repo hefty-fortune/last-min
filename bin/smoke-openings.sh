@@ -39,7 +39,13 @@ uuid() {
     return
   fi
 
-  uuidgen
+  if command -v uuidgen >/dev/null 2>&1; then
+    uuidgen
+    return
+  fi
+
+  # Portable fallback (e.g. Git Bash on Windows): build a v4 UUID from urandom.
+  od -An -N16 -tx1 /dev/urandom | tr -d ' \n' | awk '{printf "%s-%s-4%s-8%s-%s\n", substr($0,1,8), substr($0,9,4), substr($0,14,3), substr($0,18,3), substr($0,21,12)}'
 }
 
 timestamp_in_seconds() {
@@ -61,6 +67,11 @@ api_call() {
     -o "$TMP_BODY"
     -w '%{http_code}'
   )
+
+  # The API key gate requires X-Api-Key on every /api/v1 request.
+  if [[ -n "${API_KEY:-}" ]]; then
+    curl_args+=(-H "X-Api-Key: $API_KEY")
+  fi
 
   if [[ -n "$body" ]]; then
     curl_args+=(
