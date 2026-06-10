@@ -22,6 +22,19 @@ final class PdoRefundRepository implements RefundRepository
         return $row === false ? null : $this->mapRefund($row);
     }
 
+    public function lockById(string $refundId): ?array
+    {
+        $sql = 'SELECT * FROM refunds WHERE id = :id';
+        if ($this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME) !== 'sqlite') {
+            $sql .= ' FOR UPDATE';
+        }
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute(['id' => $refundId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row === false ? null : $this->mapRefund($row);
+    }
+
     public function listByBookingId(string $bookingId): array
     {
         $stmt = $this->pdo->prepare('SELECT * FROM refunds WHERE booking_id = :booking_id ORDER BY created_at DESC');

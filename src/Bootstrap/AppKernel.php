@@ -177,7 +177,7 @@ final class AppKernel
             ),
             new RefundController(
                 new ListBookingRefundsService(new PdoRefundRepository($pdo), new PdoBookingRepository($pdo), $providerRepository),
-                new ApproveRefundService(new PdoRefundRepository($pdo), $audit, $outbox),
+                new ApproveRefundService($tx, new PdoRefundRepository($pdo), $audit, $outbox),
                 $idempotency
             ),
             new OfferingController(

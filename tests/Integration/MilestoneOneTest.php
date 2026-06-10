@@ -183,7 +183,7 @@ final class MilestoneOneTest extends TestCase
             ),
             new RefundController(
                 new ListBookingRefundsService(new PdoRefundRepository($this->pdo), new PdoBookingRepository($this->pdo), $providerRepository),
-                new ApproveRefundService(new PdoRefundRepository($this->pdo), new PdoAuditLogger($this->pdo), new PdoOutboxMessageStore($this->pdo)),
+                new ApproveRefundService($tx, new PdoRefundRepository($this->pdo), new PdoAuditLogger($this->pdo), new PdoOutboxMessageStore($this->pdo)),
                 $idempotency
             ),
             new OfferingController(
@@ -639,6 +639,16 @@ final class MilestoneOneTest extends TestCase
         self::assertSame('OFFERING_NOT_FOUND', $missing->body['error']['code']);
     }
 
+    public function testOfferingRepositoryRejectsUnknownUpdateColumn(): void
+    {
+        // Defense-in-depth: the repository must never write a column key it was
+        // not designed to update, even if a future caller forwards a bad key.
+        $repo = new PdoOfferingRepository($this->pdo);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $repo->update('offering-1', ['provider_id' => 'attacker-owned-provider']);
+    }
+
     public function testPublicOfferingsListShowsOnlyActive(): void
     {
         $deactivate = $this->router->dispatch(new Request('PATCH', '/api/v1/providers/provider-1/offerings/offering-1', $this->actorHeaders(['provider']), ['status' => 'inactive']));
@@ -914,6 +924,27 @@ final class MilestoneOneTest extends TestCase
         $boomRow = $this->pdo->query("SELECT status, attempts FROM outbox_messages WHERE id = '$boomId'")->fetch(\PDO::FETCH_ASSOC);
         self::assertSame('failed', $boomRow['status']);
         self::assertSame(2, (int) $boomRow['attempts']);
+    }
+
+    public function testOutboxClaimIsExclusive(): void
+    {
+        $store = new PdoOutboxMessageStore($this->pdo);
+        $id = $store->enqueue('test.exclusive', ['v' => 1]);
+
+        $firstClaim = $store->claimPending(10);
+        self::assertCount(1, $firstClaim);
+        self::assertSame($id, $firstClaim[0]['message_id']);
+
+        // A second drain (simulating a concurrent worker) must NOT re-claim the
+        // already-in-flight message — otherwise its handler runs twice.
+        $secondClaim = $store->claimPending(10);
+        self::assertCount(0, $secondClaim);
+
+        // After a transient failure the message returns to pending and is claimable again.
+        $store->recordAttemptFailure($id, 'transient');
+        $retryClaim = $store->claimPending(10);
+        self::assertCount(1, $retryClaim);
+        self::assertSame(1, $retryClaim[0]['attempts']);
     }
 
     public function testRefundApprovalWritesAuditAndOutbox(): void

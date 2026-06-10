@@ -70,11 +70,18 @@ final class PdoOfferingRepository implements OfferingRepository
         return $created;
     }
 
+    /** Columns this repository will write via update(); guards against a caller
+     *  ever passing an attacker-controlled key into the dynamic SET clause. */
+    private const UPDATABLE_COLUMNS = ['name', 'description', 'duration_minutes', 'price_amount', 'price_currency', 'status'];
+
     public function update(string $offeringId, array $changes): array
     {
         $columns = [];
         $params = ['id' => $offeringId, 'updated_at' => (new \DateTimeImmutable())->format(DATE_ATOM)];
         foreach ($changes as $column => $value) {
+            if (!in_array($column, self::UPDATABLE_COLUMNS, true)) {
+                throw new \InvalidArgumentException(sprintf('Column "%s" is not updatable.', $column));
+            }
             $columns[] = "$column = :$column";
             $params[$column] = $value;
         }

@@ -9,6 +9,11 @@ interface RefundRepository
     /** @return array<string, mixed>|null */
     public function findById(string $refundId): ?array;
 
+    /** Locks the refund row for update (must be called within a transaction).
+     *  @return array<string, mixed>|null
+     */
+    public function lockById(string $refundId): ?array;
+
     /** @return list<array<string, mixed>> */
     public function listByBookingId(string $bookingId): array;
 

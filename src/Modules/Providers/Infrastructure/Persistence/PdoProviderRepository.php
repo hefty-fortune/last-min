@@ -39,11 +39,18 @@ final class PdoProviderRepository implements ProviderRepository
         return $row === false ? null : $row;
     }
 
+    /** Columns this repository will write via update(); guards against a caller
+     *  ever passing an attacker-controlled key into the dynamic SET clause. */
+    private const UPDATABLE_COLUMNS = ['display_name', 'status'];
+
     public function update(string $providerId, array $changes): array
     {
         $columns = [];
         $params = ['id' => $providerId, 'updated_at' => (new \DateTimeImmutable())->format(DATE_ATOM)];
         foreach ($changes as $column => $value) {
+            if (!in_array($column, self::UPDATABLE_COLUMNS, true)) {
+                throw new \InvalidArgumentException(sprintf('Column "%s" is not updatable.', $column));
+            }
             $columns[] = "$column = :$column";
             $params[$column] = $value;
         }
