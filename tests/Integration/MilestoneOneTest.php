@@ -52,12 +52,20 @@ use App\Modules\Openings\Application\Service\ListOpeningsService;
 use App\Modules\Openings\Application\Service\OpeningAccessService;
 use App\Modules\Openings\Application\Service\PublishOpeningService;
 use App\Modules\Openings\Infrastructure\Persistence\PdoOpeningRepository;
+use App\Modules\Organizations\Api\OrganizationController;
+use App\Modules\Organizations\Application\Service\AddOrganizationMemberService;
+use App\Modules\Organizations\Application\Service\CreateOrganizationSelfService;
+use App\Modules\Organizations\Application\Service\ViewOrganizationService;
+use App\Modules\Organizations\Infrastructure\Persistence\PdoOrganizationMemberRepository;
 use App\Modules\Payments\Api\PaymentController;
 use App\Modules\Payments\Application\Service\GetPaymentService;
 use App\Modules\Payments\Application\Service\InitiatePaymentService;
 use App\Modules\Payments\Infrastructure\Persistence\PdoPaymentRepository;
 use App\Modules\Providers\Api\ProviderController;
 use App\Modules\Providers\Application\Service\CreateProviderService;
+use App\Modules\Providers\Application\Service\GetProviderProfileService;
+use App\Modules\Providers\Application\Service\LinkProviderService;
+use App\Modules\Providers\Application\Service\UpdateProviderService;
 use App\Modules\Providers\Infrastructure\Persistence\PdoProviderRepository;
 use App\Modules\Refunds\Api\RefundController;
 use App\Modules\Refunds\Application\Service\ApproveRefundService;
@@ -132,7 +140,13 @@ final class MilestoneOneTest extends TestCase
             new ApiKeyController(new CreateApiKeyService($apiKeys), new DeleteApiKeyService($apiKeys), new ListApiKeysService($apiKeys)),
             new AuthController(new LoginService(new PdoUserAuthRepository($this->pdo), new PdoAuthSessionRepository($this->pdo))),
             new MeController(new GetMeQueryService()),
-            new ProviderController(new CreateProviderService($providerRepository), $idempotency),
+            new ProviderController(
+                new CreateProviderService($providerRepository),
+                new GetProviderProfileService($providerRepository),
+                new UpdateProviderService($providerRepository),
+                new LinkProviderService($providerRepository),
+                $idempotency
+            ),
             new OpeningController(
                 new CreateOpeningService($openingRepository, $openingAccess),
                 new GetOpeningService($openingRepository, $openingAccess),
@@ -167,6 +181,12 @@ final class MilestoneOneTest extends TestCase
                 new CreateOfferingService(new PdoOfferingRepository($this->pdo), new OfferingAccessService($providerRepository)),
                 new ListOfferingsService(new PdoOfferingRepository($this->pdo), new OfferingAccessService($providerRepository)),
                 new UpdateOfferingService(new PdoOfferingRepository($this->pdo), new OfferingAccessService($providerRepository)),
+                $idempotency
+            ),
+            new OrganizationController(
+                new CreateOrganizationSelfService($tx, new PdoOrganizationRepository($this->pdo), new PdoOrganizationMemberRepository($this->pdo)),
+                new ViewOrganizationService(new PdoOrganizationRepository($this->pdo), new PdoOrganizationMemberRepository($this->pdo)),
+                new AddOrganizationMemberService(new PdoOrganizationRepository($this->pdo), new PdoOrganizationMemberRepository($this->pdo)),
                 $idempotency
             ),
             new StripeWebhookController(new StripeSignatureVerifier('test_webhook_secret'), new PdoStripeWebhookEventRepository($this->pdo), new StripeWebhookDispatcher()),
@@ -632,6 +652,143 @@ final class MilestoneOneTest extends TestCase
 
         self::assertSame(403, $response->statusCode);
         self::assertSame('FORBIDDEN_PROVIDER_ACCESS', $response->body['error']['code']);
+    }
+
+    public function testProviderCanReadAndUpdateOwnProvider(): void
+    {
+        $response = $this->router->dispatch(new Request('GET', '/api/v1/providers/provider-1', $this->actorHeaders(['provider']), []));
+        self::assertSame(200, $response->statusCode);
+        self::assertSame('provider-1', $response->body['data']['provider_id']);
+        self::assertSame('individual', $response->body['data']['provider_type']);
+
+        $updated = $this->router->dispatch(new Request('PATCH', '/api/v1/providers/provider-1', $this->actorHeaders(['provider']), ['display_name' => 'Ana Studio']));
+        self::assertSame(200, $updated->statusCode);
+        self::assertSame('Ana Studio', $updated->body['data']['display_name']);
+
+        $statusDenied = $this->router->dispatch(new Request('PATCH', '/api/v1/providers/provider-1', $this->actorHeaders(['provider']), ['status' => 'suspended']));
+        self::assertSame(403, $statusDenied->statusCode);
+        self::assertSame('FORBIDDEN_PROVIDER_STATUS_CHANGE', $statusDenied->body['error']['code']);
+
+        $statusByAdmin = $this->router->dispatch(new Request('PATCH', '/api/v1/providers/provider-1', $this->actorHeaders(['admin']), ['status' => 'suspended']));
+        self::assertSame(200, $statusByAdmin->statusCode);
+        self::assertSame('suspended', $statusByAdmin->body['data']['status']);
+    }
+
+    public function testProviderLinkSelfService(): void
+    {
+        $newActorHeaders = [
+            'X-Actor-Id' => 'actor-2',
+            'X-Actor-Subject' => 'sso|user_2',
+            'X-Actor-Roles' => 'provider',
+            'X-User-Profile-Id' => 'profile-client-2',
+            'Idempotency-Key' => 'idem-provider-link-1',
+        ];
+        $request = new Request('POST', '/api/v1/me/provider-link', $newActorHeaders, ['provider_type' => 'individual', 'display_name' => 'Marko Frizer']);
+
+        $first = $this->router->dispatch($request);
+        self::assertSame(201, $first->statusCode);
+        self::assertSame('individual', $first->body['data']['provider_type']);
+        self::assertSame('Marko Frizer', $first->body['data']['display_name']);
+
+        $second = $this->router->dispatch($request);
+        self::assertSame(201, $second->statusCode);
+        self::assertTrue($second->body['meta']['idempotency_replayed']);
+
+        $alreadyLinked = $this->actorHeaders(['provider']);
+        $alreadyLinked['Idempotency-Key'] = 'idem-provider-link-2';
+        $conflict = $this->router->dispatch(new Request('POST', '/api/v1/me/provider-link', $alreadyLinked, ['provider_type' => 'individual']));
+        self::assertSame(409, $conflict->statusCode);
+        self::assertSame('CONFLICT_PROVIDER_ALREADY_LINKED', $conflict->body['error']['code']);
+    }
+
+    public function testProviderCanCreateOrganizationSelfService(): void
+    {
+        $headers = $this->actorHeaders(['provider']);
+        $headers['Idempotency-Key'] = 'idem-org-create-1';
+        $request = new Request('POST', '/api/v1/organizations', $headers, [
+            'legal_name' => 'Studio Brzo d.o.o.',
+            'display_name' => 'Studio Brzo',
+            'contact_email' => 'studio@example.test',
+            'contact_phone' => '+385911112222',
+        ]);
+
+        $first = $this->router->dispatch($request);
+        self::assertSame(201, $first->statusCode);
+        $orgId = $first->body['data']['organization_id'];
+        self::assertCount(1, $first->body['data']['members']);
+        self::assertSame('owner', $first->body['data']['members'][0]['organization_role']);
+        self::assertSame('profile-client-1', $first->body['data']['members'][0]['user_profile_id']);
+
+        $second = $this->router->dispatch($request);
+        self::assertTrue($second->body['meta']['idempotency_replayed']);
+
+        $view = $this->router->dispatch(new Request('GET', "/api/v1/organizations/$orgId", $this->actorHeaders(['provider']), []));
+        self::assertSame(200, $view->statusCode);
+        self::assertSame('Studio Brzo', $view->body['data']['display_name']);
+
+        $outsider = [
+            'X-Actor-Id' => 'actor-2',
+            'X-Actor-Subject' => 'sso|user_2',
+            'X-Actor-Roles' => 'provider',
+            'X-User-Profile-Id' => 'profile-client-2',
+        ];
+        $denied = $this->router->dispatch(new Request('GET', "/api/v1/organizations/$orgId", $outsider, []));
+        self::assertSame(403, $denied->statusCode);
+        self::assertSame('FORBIDDEN_ORGANIZATION_ACCESS', $denied->body['error']['code']);
+    }
+
+    public function testOrganizationMemberManagement(): void
+    {
+        $headers = $this->actorHeaders(['provider']);
+        $headers['Idempotency-Key'] = 'idem-org-create-2';
+        $created = $this->router->dispatch(new Request('POST', '/api/v1/organizations', $headers, [
+            'legal_name' => 'Members d.o.o.',
+            'display_name' => 'Members Studio',
+            'contact_email' => 'members@example.test',
+            'contact_phone' => '+385911113333',
+        ]));
+        $orgId = $created->body['data']['organization_id'];
+
+        $addHeaders = $this->actorHeaders(['provider']);
+        $addHeaders['Idempotency-Key'] = 'idem-org-member-1';
+        $added = $this->router->dispatch(new Request('POST', "/api/v1/organizations/$orgId/members", $addHeaders, [
+            'user_profile_id' => 'profile-client-2',
+            'organization_role' => 'staff',
+        ]));
+        self::assertSame(201, $added->statusCode);
+        self::assertSame('staff', $added->body['data']['organization_role']);
+
+        $dupHeaders = $this->actorHeaders(['provider']);
+        $dupHeaders['Idempotency-Key'] = 'idem-org-member-2';
+        $duplicate = $this->router->dispatch(new Request('POST', "/api/v1/organizations/$orgId/members", $dupHeaders, [
+            'user_profile_id' => 'profile-client-2',
+            'organization_role' => 'manager',
+        ]));
+        self::assertSame(409, $duplicate->statusCode);
+        self::assertSame('CONFLICT_MEMBER_ALREADY_EXISTS', $duplicate->body['error']['code']);
+
+        $staffActor = [
+            'X-Actor-Id' => 'actor-2',
+            'X-Actor-Subject' => 'sso|user_2',
+            'X-Actor-Roles' => 'provider',
+            'X-User-Profile-Id' => 'profile-client-2',
+            'Idempotency-Key' => 'idem-org-member-3',
+        ];
+        $deniedAdd = $this->router->dispatch(new Request('POST', "/api/v1/organizations/$orgId/members", $staffActor, [
+            'user_profile_id' => 'profile-client-3',
+            'organization_role' => 'staff',
+        ]));
+        self::assertSame(403, $deniedAdd->statusCode);
+        self::assertSame('FORBIDDEN_POLICY_DENIED', $deniedAdd->body['error']['code']);
+
+        $memberView = $this->router->dispatch(new Request('GET', "/api/v1/organizations/$orgId", [
+            'X-Actor-Id' => 'actor-2',
+            'X-Actor-Subject' => 'sso|user_2',
+            'X-Actor-Roles' => 'provider',
+            'X-User-Profile-Id' => 'profile-client-2',
+        ], []));
+        self::assertSame(200, $memberView->statusCode);
+        self::assertCount(2, $memberView->body['data']['members']);
     }
 
     public function testClientCanListOwnBookings(): void

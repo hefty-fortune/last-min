@@ -31,6 +31,33 @@ final class PdoProviderRepository implements ProviderRepository
         return $row === false ? null : $row;
     }
 
+    public function findByOwnerProfileId(string $ownerUserProfileId): ?array
+    {
+        $stmt = $this->pdo->prepare('SELECT * FROM providers WHERE owner_user_profile_id = :owner LIMIT 1');
+        $stmt->execute(['owner' => $ownerUserProfileId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row === false ? null : $row;
+    }
+
+    public function update(string $providerId, array $changes): array
+    {
+        $columns = [];
+        $params = ['id' => $providerId, 'updated_at' => (new \DateTimeImmutable())->format(DATE_ATOM)];
+        foreach ($changes as $column => $value) {
+            $columns[] = "$column = :$column";
+            $params[$column] = $value;
+        }
+        $columns[] = 'updated_at = :updated_at';
+
+        $stmt = $this->pdo->prepare(sprintf('UPDATE providers SET %s WHERE id = :id', implode(', ', $columns)));
+        $stmt->execute($params);
+
+        $row = $this->findById($providerId);
+        assert($row !== null);
+
+        return $row;
+    }
+
     private static function uuid(): string
     {
         $data = random_bytes(16);

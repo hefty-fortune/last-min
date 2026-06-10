@@ -54,12 +54,20 @@ use App\Modules\Openings\Application\Service\ListOpeningsService;
 use App\Modules\Openings\Application\Service\OpeningAccessService;
 use App\Modules\Openings\Application\Service\PublishOpeningService;
 use App\Modules\Openings\Infrastructure\Persistence\PdoOpeningRepository;
+use App\Modules\Organizations\Api\OrganizationController;
+use App\Modules\Organizations\Application\Service\AddOrganizationMemberService;
+use App\Modules\Organizations\Application\Service\CreateOrganizationSelfService;
+use App\Modules\Organizations\Application\Service\ViewOrganizationService;
+use App\Modules\Organizations\Infrastructure\Persistence\PdoOrganizationMemberRepository;
 use App\Modules\Payments\Api\PaymentController;
 use App\Modules\Payments\Application\Service\GetPaymentService;
 use App\Modules\Payments\Application\Service\InitiatePaymentService;
 use App\Modules\Payments\Infrastructure\Persistence\PdoPaymentRepository;
 use App\Modules\Providers\Api\ProviderController;
 use App\Modules\Providers\Application\Service\CreateProviderService;
+use App\Modules\Providers\Application\Service\GetProviderProfileService;
+use App\Modules\Providers\Application\Service\LinkProviderService;
+use App\Modules\Providers\Application\Service\UpdateProviderService;
 use App\Modules\Providers\Infrastructure\Persistence\PdoProviderRepository;
 use App\Modules\Refunds\Api\RefundController;
 use App\Modules\Refunds\Application\Service\ApproveRefundService;
@@ -125,7 +133,13 @@ final class AppKernel
             new ApiKeyController(new CreateApiKeyService($apiKeys), new DeleteApiKeyService($apiKeys), new ListApiKeysService($apiKeys)),
             new AuthController(new LoginService($userAuth, $sessions)),
             new MeController(new GetMeQueryService()),
-            new ProviderController(new CreateProviderService($providerRepository), $idempotency),
+            new ProviderController(
+                new CreateProviderService($providerRepository),
+                new GetProviderProfileService($providerRepository),
+                new UpdateProviderService($providerRepository),
+                new LinkProviderService($providerRepository),
+                $idempotency
+            ),
             new OpeningController(
                 new CreateOpeningService($openingRepository, $openingAccess),
                 new GetOpeningService($openingRepository, $openingAccess),
@@ -160,6 +174,12 @@ final class AppKernel
                 new CreateOfferingService(new PdoOfferingRepository($pdo), new OfferingAccessService($providerRepository)),
                 new ListOfferingsService(new PdoOfferingRepository($pdo), new OfferingAccessService($providerRepository)),
                 new UpdateOfferingService(new PdoOfferingRepository($pdo), new OfferingAccessService($providerRepository)),
+                $idempotency
+            ),
+            new OrganizationController(
+                new CreateOrganizationSelfService($tx, new PdoOrganizationRepository($pdo), new PdoOrganizationMemberRepository($pdo)),
+                new ViewOrganizationService(new PdoOrganizationRepository($pdo), new PdoOrganizationMemberRepository($pdo)),
+                new AddOrganizationMemberService(new PdoOrganizationRepository($pdo), new PdoOrganizationMemberRepository($pdo)),
                 $idempotency
             ),
             new StripeWebhookController(new StripeSignatureVerifier($stripeWebhookSecret), new PdoStripeWebhookEventRepository($pdo), new StripeWebhookDispatcher()),

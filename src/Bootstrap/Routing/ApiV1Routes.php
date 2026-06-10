@@ -15,6 +15,7 @@ use App\Modules\IdentityAccess\Api\ApiKeyController;
 use App\Modules\IdentityAccess\Api\AuthController;
 use App\Modules\IdentityAccess\Api\MeController;
 use App\Modules\Openings\Api\OpeningController;
+use App\Modules\Organizations\Api\OrganizationController;
 use App\Modules\Payments\Api\PaymentController;
 use App\Modules\Providers\Api\ProviderController;
 use App\Modules\Refunds\Api\RefundController;
@@ -43,6 +44,7 @@ final class ApiV1Routes
         PaymentController $payments,
         RefundController $refunds,
         OfferingController $offerings,
+        OrganizationController $organizations,
         StripeWebhookController $stripeWebhook,
     ): void {
         $router->add('POST', '/api/v1/auth/login', function (Request $request) use ($auth) {
@@ -142,6 +144,36 @@ final class ApiV1Routes
         $router->add('POST', '/api/v1/providers', function (Request $request) use ($providers) {
             $actor = $this->resolver->resolve($request->headers);
             return $providers->create($actor, $request);
+        });
+
+        $router->add('GET', '/api/v1/providers/{provider_id}', function (Request $request, array $params) use ($providers) {
+            $actor = $this->resolver->resolve($request->headers);
+            return $providers->get($actor, $params['provider_id']);
+        });
+
+        $router->add('PATCH', '/api/v1/providers/{provider_id}', function (Request $request, array $params) use ($providers) {
+            $actor = $this->resolver->resolve($request->headers);
+            return $providers->update($actor, $request, $params['provider_id']);
+        });
+
+        $router->add('POST', '/api/v1/me/provider-link', function (Request $request) use ($providers) {
+            $actor = $this->resolver->resolve($request->headers);
+            return $providers->link($actor, $request);
+        });
+
+        $router->add('POST', '/api/v1/organizations', function (Request $request) use ($organizations) {
+            $actor = $this->resolver->resolve($request->headers);
+            return $organizations->create($actor, $request);
+        });
+
+        $router->add('GET', '/api/v1/organizations/{organization_id}', function (Request $request, array $params) use ($organizations) {
+            $actor = $this->resolver->resolve($request->headers);
+            return $organizations->get($actor, $params['organization_id']);
+        });
+
+        $router->add('POST', '/api/v1/organizations/{organization_id}/members', function (Request $request, array $params) use ($organizations) {
+            $actor = $this->resolver->resolve($request->headers);
+            return $organizations->addMember($actor, $request, $params['organization_id']);
         });
 
         $router->add('POST', '/api/v1/providers/{provider_id}/offerings', function (Request $request, array $params) use ($offerings) {
