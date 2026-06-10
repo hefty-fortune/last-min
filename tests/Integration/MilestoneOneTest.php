@@ -6,6 +6,10 @@ namespace Tests\Integration;
 
 use App\Bootstrap\Routing\ApiV1Routes;
 use App\Bootstrap\Routing\Router;
+use App\Modules\AdminOps\Api\AdminOpsController;
+use App\Modules\AdminOps\Application\Service\AdminOpsQueryService;
+use App\Modules\AdminOps\Application\Service\ForceExpireOpeningService;
+use App\Modules\AdminOps\Infrastructure\Persistence\PdoAdminOpsReadRepository;
 use App\Common\Http\Request;
 use App\Common\Security\ActorContextResolver;
 use App\Modules\AdminSetup\Api\OrganizationAdminController;
@@ -187,6 +191,11 @@ final class MilestoneOneTest extends TestCase
                 new CreateOrganizationSelfService($tx, new PdoOrganizationRepository($this->pdo), new PdoOrganizationMemberRepository($this->pdo)),
                 new ViewOrganizationService(new PdoOrganizationRepository($this->pdo), new PdoOrganizationMemberRepository($this->pdo)),
                 new AddOrganizationMemberService(new PdoOrganizationRepository($this->pdo), new PdoOrganizationMemberRepository($this->pdo)),
+                $idempotency
+            ),
+            new AdminOpsController(
+                new AdminOpsQueryService(new PdoAdminOpsReadRepository($this->pdo)),
+                new ForceExpireOpeningService($tx, $openingRepository),
                 $idempotency
             ),
             new StripeWebhookController(new StripeSignatureVerifier('test_webhook_secret'), new PdoStripeWebhookEventRepository($this->pdo), new StripeWebhookDispatcher()),
@@ -789,6 +798,62 @@ final class MilestoneOneTest extends TestCase
         ], []));
         self::assertSame(200, $memberView->statusCode);
         self::assertCount(2, $memberView->body['data']['members']);
+    }
+
+    public function testAdminOperationalLists(): void
+    {
+        $bookingId = $this->seedConfirmedBooking('booking-adminops-1');
+        $this->seedPaymentForBooking('payment-adminops-1', $bookingId);
+
+        $noShowHeaders = $this->actorHeaders(['provider']);
+        $noShowHeaders['Idempotency-Key'] = 'idem-adminops-noshow-1';
+        $this->router->dispatch(new Request('POST', "/api/v1/bookings/$bookingId:mark-provider-no-show", $noShowHeaders, []));
+
+        $bookings = $this->router->dispatch(new Request('GET', '/api/v1/admin/bookings?state=provider_no_show', $this->actorHeaders(['admin']), []));
+        self::assertSame(200, $bookings->statusCode);
+        self::assertCount(1, $bookings->body['data']);
+        self::assertSame($bookingId, $bookings->body['data'][0]['booking_id']);
+        self::assertSame('captured', $bookings->body['data'][0]['payment']['state']);
+
+        $payments = $this->router->dispatch(new Request('GET', '/api/v1/admin/payments', $this->actorHeaders(['admin']), []));
+        self::assertSame(200, $payments->statusCode);
+        self::assertCount(1, $payments->body['data']);
+
+        $refunds = $this->router->dispatch(new Request('GET', '/api/v1/admin/refunds?reason=provider_no_show', $this->actorHeaders(['admin']), []));
+        self::assertSame(200, $refunds->statusCode);
+        self::assertCount(1, $refunds->body['data']);
+        self::assertSame('requested', $refunds->body['data'][0]['state']);
+
+        $events = $this->router->dispatch(new Request('GET', '/api/v1/admin/webhooks/stripe/events', $this->actorHeaders(['admin']), []));
+        self::assertSame(200, $events->statusCode);
+
+        $denied = $this->router->dispatch(new Request('GET', '/api/v1/admin/bookings', $this->actorHeaders(['provider']), []));
+        self::assertSame(403, $denied->statusCode);
+    }
+
+    public function testSuperAdminCanForceExpireOpening(): void
+    {
+        $headers = $this->actorHeaders(['super-admin']);
+        $headers['Idempotency-Key'] = 'idem-force-expire-1';
+        $request = new Request('POST', '/api/v1/admin/openings/opening-2:force-expire', $headers, []);
+
+        $first = $this->router->dispatch($request);
+        self::assertSame(200, $first->statusCode);
+        self::assertSame('expired', $first->body['data']['status']);
+
+        $second = $this->router->dispatch($request);
+        self::assertTrue($second->body['meta']['idempotency_replayed']);
+
+        $retryHeaders = $this->actorHeaders(['super-admin']);
+        $retryHeaders['Idempotency-Key'] = 'idem-force-expire-2';
+        $conflict = $this->router->dispatch(new Request('POST', '/api/v1/admin/openings/opening-2:force-expire', $retryHeaders, []));
+        self::assertSame(409, $conflict->statusCode);
+        self::assertSame('CONFLICT_OPENING_STATE_INVALID', $conflict->body['error']['code']);
+
+        $adminHeaders = $this->actorHeaders(['admin']);
+        $adminHeaders['Idempotency-Key'] = 'idem-force-expire-3';
+        $denied = $this->router->dispatch(new Request('POST', '/api/v1/admin/openings/opening-1:force-expire', $adminHeaders, []));
+        self::assertSame(403, $denied->statusCode);
     }
 
     public function testClientCanListOwnBookings(): void

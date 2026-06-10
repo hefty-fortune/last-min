@@ -6,6 +6,10 @@ namespace App\Bootstrap;
 
 use App\Bootstrap\Routing\ApiV1Routes;
 use App\Bootstrap\Routing\Router;
+use App\Modules\AdminOps\Api\AdminOpsController;
+use App\Modules\AdminOps\Application\Service\AdminOpsQueryService;
+use App\Modules\AdminOps\Application\Service\ForceExpireOpeningService;
+use App\Modules\AdminOps\Infrastructure\Persistence\PdoAdminOpsReadRepository;
 use App\Common\Security\ActorContextResolver;
 use App\Common\Security\ApiKeyGateMiddleware;
 use App\Common\Security\CompositeBearerTokenActorResolver;
@@ -180,6 +184,11 @@ final class AppKernel
                 new CreateOrganizationSelfService($tx, new PdoOrganizationRepository($pdo), new PdoOrganizationMemberRepository($pdo)),
                 new ViewOrganizationService(new PdoOrganizationRepository($pdo), new PdoOrganizationMemberRepository($pdo)),
                 new AddOrganizationMemberService(new PdoOrganizationRepository($pdo), new PdoOrganizationMemberRepository($pdo)),
+                $idempotency
+            ),
+            new AdminOpsController(
+                new AdminOpsQueryService(new PdoAdminOpsReadRepository($pdo)),
+                new ForceExpireOpeningService($tx, $openingRepository),
                 $idempotency
             ),
             new StripeWebhookController(new StripeSignatureVerifier($stripeWebhookSecret), new PdoStripeWebhookEventRepository($pdo), new StripeWebhookDispatcher()),

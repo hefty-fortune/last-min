@@ -7,6 +7,7 @@ namespace App\Bootstrap\Routing;
 use App\Common\Http\Request;
 use App\Common\Security\ActorContextResolver;
 use App\Common\Security\ApiKeyGateMiddleware;
+use App\Modules\AdminOps\Api\AdminOpsController;
 use App\Modules\AdminSetup\Api\OrganizationAdminController;
 use App\Modules\AdminSetup\Api\ProviderAdminController;
 use App\Modules\AdminSetup\Api\UserAdminController;
@@ -45,6 +46,7 @@ final class ApiV1Routes
         RefundController $refunds,
         OfferingController $offerings,
         OrganizationController $organizations,
+        AdminOpsController $adminOps,
         StripeWebhookController $stripeWebhook,
     ): void {
         $router->add('POST', '/api/v1/auth/login', function (Request $request) use ($auth) {
@@ -272,6 +274,31 @@ final class ApiV1Routes
         $router->add('POST', '/api/v1/refunds/{refund_id}:approve', function (Request $request, array $params) use ($refunds) {
             $actor = $this->resolver->resolve($request->headers);
             return $refunds->approve($actor, $request, $params['refund_id']);
+        });
+
+        $router->add('GET', '/api/v1/admin/bookings', function (Request $request) use ($adminOps) {
+            $actor = $this->resolver->resolve($request->headers);
+            return $adminOps->listBookings($actor, $request);
+        });
+
+        $router->add('GET', '/api/v1/admin/payments', function (Request $request) use ($adminOps) {
+            $actor = $this->resolver->resolve($request->headers);
+            return $adminOps->listPayments($actor, $request);
+        });
+
+        $router->add('GET', '/api/v1/admin/refunds', function (Request $request) use ($adminOps) {
+            $actor = $this->resolver->resolve($request->headers);
+            return $adminOps->listRefunds($actor, $request);
+        });
+
+        $router->add('GET', '/api/v1/admin/webhooks/stripe/events', function (Request $request) use ($adminOps) {
+            $actor = $this->resolver->resolve($request->headers);
+            return $adminOps->listStripeWebhookEvents($actor, $request);
+        });
+
+        $router->add('POST', '/api/v1/admin/openings/{opening_id}:force-expire', function (Request $request, array $params) use ($adminOps) {
+            $actor = $this->resolver->resolve($request->headers);
+            return $adminOps->forceExpireOpening($actor, $request, $params['opening_id']);
         });
 
         $router->add('POST', '/api/v1/webhooks/stripe', fn (Request $request) => $stripeWebhook->ingest($request));
