@@ -1,5 +1,6 @@
 import { render } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SidebarProvider } from '@/components/common';
 import { AppSidebar } from '../AppSidebar';
@@ -8,16 +9,23 @@ vi.mock('@/lib/auth', () => ({
   useAuth: vi.fn(),
 }));
 
+vi.mock('@/lib/api', () => ({
+  listAdminRefunds: vi.fn().mockResolvedValue({ data: [], meta: { request_id: 'r1' } }),
+}));
+
 import { useAuth } from '@/lib/auth';
 const mockUseAuth = vi.mocked(useAuth);
 
 function renderSidebar(route = '/') {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
-    <MemoryRouter initialEntries={[route]}>
-      <SidebarProvider>
-        <AppSidebar />
-      </SidebarProvider>
-    </MemoryRouter>,
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={[route]}>
+        <SidebarProvider>
+          <AppSidebar />
+        </SidebarProvider>
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 

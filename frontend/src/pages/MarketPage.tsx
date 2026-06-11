@@ -57,12 +57,18 @@ export default function MarketPage() {
     bookMutation.mutate(openingId);
   };
 
+  // Booking is a client action; providers and admins browse the market
+  // to see how their slots look to customers.
+  const canBook = auth.status !== 'authenticated' || auth.me.roles.includes('client');
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-semibold">Last-minute openings</h1>
         <p className="text-muted-foreground mt-1">
-          Grab a freshly freed slot before someone else does.
+          {canBook
+            ? 'Grab a freshly freed slot before someone else does.'
+            : 'Browsing as a non-client account — this is how your slots appear to customers.'}
         </p>
       </div>
 
@@ -99,9 +105,11 @@ export default function MarketPage() {
                   <Badge variant="secondary" className="text-base">
                     {formatPrice(o)}
                   </Badge>
-                  <Button onClick={() => handleBook(o.opening_id)} disabled={bookMutation.isPending}>
-                    {bookMutation.isPending ? 'Booking...' : 'Book now'}
-                  </Button>
+                  {canBook && (
+                    <Button onClick={() => handleBook(o.opening_id)} disabled={bookMutation.isPending}>
+                      {bookMutation.isPending ? 'Booking...' : 'Book now'}
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>

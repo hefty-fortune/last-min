@@ -9,6 +9,10 @@ vi.mock('@/lib/auth', () => ({
   useAuth: vi.fn(),
 }));
 
+vi.mock('@/lib/api', () => ({
+  listAdminRefunds: vi.fn().mockResolvedValue({ data: [], meta: { request_id: 'r1' } }),
+}));
+
 import { useAuth } from '@/lib/auth';
 const mockUseAuth = vi.mocked(useAuth);
 

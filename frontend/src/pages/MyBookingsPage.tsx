@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   listMyBookings,
   getBooking,
+  listBookingRefunds,
   initiatePayment,
   simulatePaymentSucceed,
   simulatePaymentFail,
@@ -39,6 +40,15 @@ function BookingCard({ booking }: { booking: MyBooking }) {
     queryFn: () => getBooking(booking.booking_id).then((r) => r.data),
     enabled: isActive,
   });
+
+  // A provider no-show entitles the client to a refund — show its progress.
+  const { data: refunds } = useQuery({
+    queryKey: ['booking-refunds', booking.booking_id],
+    queryFn: () => listBookingRefunds(booking.booking_id).then((r) => r.data),
+    enabled: booking.state === 'provider_no_show',
+    refetchInterval: booking.state === 'provider_no_show' ? 30_000 : false,
+  });
+  const refund = refunds?.[0] ?? null;
 
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ['my-bookings'] });
@@ -100,6 +110,11 @@ function BookingCard({ booking }: { booking: MyBooking }) {
         <div className="flex items-center gap-2">
           <Badge variant={stateVariant(booking.state)}>{booking.state}</Badge>
           {payment && <Badge variant="outline">payment: {payment.state}</Badge>}
+          {refund && (
+            <Badge variant={refund.state === 'succeeded' ? 'default' : 'outline'}>
+              refund: {refund.state}
+            </Badge>
+          )}
           {isActive && !payment && (
             <Button size="sm" onClick={() => payMutation.mutate()} disabled={payMutation.isPending}>
               {payMutation.isPending ? 'Starting...' : 'Pay'}

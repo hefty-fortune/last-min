@@ -189,7 +189,11 @@ exports[`AppLayout > renders authenticated state 1`] = `
                       data-slot="sidebar-menu-button"
                       href="/openings"
                     >
-                      Openings
+                      <span
+                        class="flex w-full items-center justify-between"
+                      >
+                        Openings
+                      </span>
                     </a>
                   </li>
                   <li
@@ -205,7 +209,11 @@ exports[`AppLayout > renders authenticated state 1`] = `
                       data-slot="sidebar-menu-button"
                       href="/bookings"
                     >
-                      Bookings
+                      <span
+                        class="flex w-full items-center justify-between"
+                      >
+                        Bookings
+                      </span>
                     </a>
                   </li>
                   <li
@@ -221,7 +229,11 @@ exports[`AppLayout > renders authenticated state 1`] = `
                       data-slot="sidebar-menu-button"
                       href="/refunds"
                     >
-                      Refunds
+                      <span
+                        class="flex w-full items-center justify-between"
+                      >
+                        Refunds
+                      </span>
                     </a>
                   </li>
                   <li
@@ -237,7 +249,11 @@ exports[`AppLayout > renders authenticated state 1`] = `
                       data-slot="sidebar-menu-button"
                       href="/market"
                     >
-                      Storefront
+                      <span
+                        class="flex w-full items-center justify-between"
+                      >
+                        Storefront
+                      </span>
                     </a>
                   </li>
                 </ul>

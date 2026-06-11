@@ -282,6 +282,9 @@ export const listMyBookings = (state?: string) =>
 export const getBooking = (bookingId: string) =>
   request<{ data: BookingDetail; meta: Meta }>(`/bookings/${bookingId}`);
 
+export const listBookingRefunds = (bookingId: string) =>
+  request<{ data: Refund[]; meta: Meta }>(`/bookings/${bookingId}/refunds`);
+
 // ── Provider portal ──
 
 export const getMyProvider = () =>

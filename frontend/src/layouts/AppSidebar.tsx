@@ -1,7 +1,9 @@
 import { useLocation, Link } from 'react-router-dom';
 import { useTheme } from 'next-themes';
 import { Sun, Moon } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/lib/auth';
+import { listAdminRefunds } from '@/lib/api';
 import {
   Sidebar,
   SidebarContent,
@@ -37,6 +39,14 @@ export function AppSidebar() {
   const auth = useAuth();
 
   const me = auth.status === 'authenticated' ? auth.me : null;
+
+  // Surface refund requests needing review without anyone checking manually.
+  const { data: requestedRefunds } = useQuery({
+    queryKey: ['admin-refunds', 'requested'],
+    queryFn: () => listAdminRefunds('requested').then((r) => r.data),
+    refetchInterval: 30_000,
+  });
+  const pendingReviewCount = requestedRefunds?.length ?? 0;
 
   return (
     <Sidebar>
@@ -79,7 +89,12 @@ export function AppSidebar() {
               {marketplaceNav.map((item) => (
                 <SidebarMenuItem key={item.path}>
                   <SidebarMenuButton isActive={pathname === item.path} render={<Link to={item.path} />}>
-                    {item.label}
+                    <span className="flex w-full items-center justify-between">
+                      {item.label}
+                      {item.path === '/refunds' && pendingReviewCount > 0 && (
+                        <Badge variant="destructive" className="text-xs">{pendingReviewCount}</Badge>
+                      )}
+                    </span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
