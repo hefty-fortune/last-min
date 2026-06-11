@@ -22,6 +22,7 @@ final class PaymentController
         private GetPaymentService $getService,
         private SettlePaymentOutcomeService $settlement,
         private IdempotencyExecutor $idempotency,
+        private bool $simulationEnabled = true,
     ) {
     }
 
@@ -124,7 +125,7 @@ final class PaymentController
     )]
     public function simulateSucceed(ActorContext $actor, string $paymentId): ApiResponse
     {
-        $this->assertAdmin($actor);
+        $this->assertCanSimulate($actor);
         $data = $this->settlement->succeed($paymentId);
 
         return ApiResponse::ok(['data' => $data, 'meta' => ['request_id' => uniqid('req_', true)]]);
@@ -145,17 +146,21 @@ final class PaymentController
     )]
     public function simulateFail(ActorContext $actor, Request $request, string $paymentId): ApiResponse
     {
-        $this->assertAdmin($actor);
+        $this->assertCanSimulate($actor);
         $reason = isset($request->body['reason']) ? (string) $request->body['reason'] : 'simulated_failure';
         $data = $this->settlement->fail($paymentId, $reason);
 
         return ApiResponse::ok(['data' => $data, 'meta' => ['request_id' => uniqid('req_', true)]]);
     }
 
-    private function assertAdmin(ActorContext $actor): void
+    private function assertCanSimulate(ActorContext $actor): void
     {
         if (!$actor->hasRole('admin') && !$actor->hasRole('super-admin')) {
             throw new ApiException(403, new ApiError('FORBIDDEN_ROLE_MISSING', 'Admin role is required.'));
+        }
+
+        if (!$this->simulationEnabled) {
+            throw new ApiException(403, new ApiError('SIMULATION_DISABLED', 'Payment simulation is disabled when STRIPE_MODE=real; outcomes arrive via Stripe webhooks.'));
         }
     }
 }

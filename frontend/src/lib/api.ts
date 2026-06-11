@@ -407,6 +407,7 @@ export type PaymentInitiated = {
   payment_id: string;
   state: string;
   amount: Money;
+  payment_mode: 'simulation' | 'real';
   stripe: { payment_intent_id: string; client_secret: string };
 };
 

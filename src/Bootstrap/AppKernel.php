@@ -89,6 +89,7 @@ use App\Platform\Audit\PdoAuditLogger;
 use App\Platform\Idempotency\IdempotencyExecutor;
 use App\Platform\Idempotency\PdoIdempotencyStore;
 use App\Platform\Outbox\PdoOutboxMessageStore;
+use App\Platform\Integrations\Stripe\HttpStripeGateway;
 use App\Platform\Integrations\Stripe\StubStripeGateway;
 use App\Platform\Persistence\PdoTransactionManager;
 use App\Platform\Webhooks\Stripe\PdoStripeWebhookEventRepository;
@@ -99,8 +100,16 @@ use PDO;
 
 final class AppKernel
 {
-    public static function buildRouter(PDO $pdo, string $stripeWebhookSecret): Router
+    /**
+     * @param string $stripeMode 'simulation' (stub gateway + simulate endpoints)
+     *                           or 'real' (live Stripe API, simulation disabled)
+     */
+    public static function buildRouter(PDO $pdo, string $stripeWebhookSecret, string $stripeMode = 'simulation', string $stripeSecretKey = ''): Router
     {
+        $simulationEnabled = $stripeMode !== 'real';
+        $stripeGateway = $simulationEnabled
+            ? new StubStripeGateway()
+            : new HttpStripeGateway($stripeSecretKey);
         $router = new Router();
         $idempotency = new IdempotencyExecutor(new PdoIdempotencyStore($pdo));
         $apiKeys = new PdoApiKeyRepository($pdo);
@@ -172,10 +181,11 @@ final class AppKernel
                 $idempotency
             ),
             new PaymentController(
-                new InitiatePaymentService(new PdoBookingRepository($pdo), new PdoPaymentRepository($pdo), new StubStripeGateway()),
+                new InitiatePaymentService(new PdoBookingRepository($pdo), new PdoPaymentRepository($pdo), $stripeGateway, $simulationEnabled ? 'simulation' : 'real'),
                 new GetPaymentService(new PdoPaymentRepository($pdo), $providerRepository),
                 $settlement = new SettlePaymentOutcomeService($tx, new PdoPaymentRepository($pdo), new PdoBookingRepository($pdo), $openingRepository),
-                $idempotency
+                $idempotency,
+                $simulationEnabled
             ),
             new RefundController(
                 new ListBookingRefundsService(new PdoRefundRepository($pdo), new PdoBookingRepository($pdo), $providerRepository),

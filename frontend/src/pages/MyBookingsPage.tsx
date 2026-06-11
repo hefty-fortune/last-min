@@ -17,6 +17,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/common';
+import { StripePaymentDialog, stripeElementsAvailable } from '@/components/StripePaymentDialog';
+import { useState } from 'react';
 import { toast } from 'sonner';
 
 const ACTIVE_STATES = ['reserved', 'payment_pending'];
@@ -30,6 +32,7 @@ const stateVariant = (state: string) => {
 function BookingCard({ booking, canSimulate }: { booking: MyBooking; canSimulate: boolean }) {
   const queryClient = useQueryClient();
   const isActive = ACTIVE_STATES.includes(booking.state);
+  const [checkoutSecret, setCheckoutSecret] = useState<string | null>(null);
 
   const { data: detail } = useQuery({
     queryKey: ['booking', booking.booking_id],
@@ -44,9 +47,13 @@ function BookingCard({ booking, canSimulate }: { booking: MyBooking; canSimulate
 
   const payMutation = useMutation({
     mutationFn: () => initiatePayment(booking.booking_id),
-    onSuccess: () => {
+    onSuccess: (r) => {
       refresh();
-      toast.success('Payment started.');
+      if (r.data.payment_mode === 'real' && stripeElementsAvailable()) {
+        setCheckoutSecret(r.data.stripe.client_secret);
+      } else {
+        toast.success('Payment started.');
+      }
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -108,6 +115,19 @@ function BookingCard({ booking, canSimulate }: { booking: MyBooking; canSimulate
           )}
         </div>
       </CardContent>
+      {checkoutSecret && (
+        <StripePaymentDialog
+          clientSecret={checkoutSecret}
+          open={checkoutSecret !== null}
+          onOpenChange={(open) => {
+            if (!open) setCheckoutSecret(null);
+          }}
+          onDone={() => {
+            setCheckoutSecret(null);
+            refresh();
+          }}
+        />
+      )}
     </Card>
   );
 }

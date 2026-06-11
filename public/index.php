@@ -23,6 +23,8 @@ if ($docPath === '/api/docs/openapi.json') {
 
 $pdo = DatabaseConnection::fromEnvironment();
 $stripeWebhookSecret = getenv('STRIPE_WEBHOOK_SECRET') ?: 'dev-stripe-webhook-secret';
+$stripeMode = getenv('STRIPE_MODE') ?: 'simulation';
+$stripeSecretKey = getenv('STRIPE_SECRET_KEY') ?: '';
 
 $headers = function_exists('getallheaders') ? getallheaders() : [];
 $rawBody = file_get_contents('php://input');
@@ -38,7 +40,7 @@ $request = new Request(
 );
 
 try {
-    $response = AppKernel::buildRouter($pdo, $stripeWebhookSecret)->dispatch($request);
+    $response = AppKernel::buildRouter($pdo, $stripeWebhookSecret, $stripeMode, $stripeSecretKey)->dispatch($request);
 } catch (ApiException $e) {
     $response = new \App\Common\Api\ApiResponse($e->statusCode, $e->error->toArray());
 } catch (\Throwable) {

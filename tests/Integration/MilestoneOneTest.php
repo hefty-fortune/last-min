@@ -1068,7 +1068,9 @@ final class MilestoneOneTest extends TestCase
         $intentId = $payment->body['data']['stripe']['payment_intent_id'];
 
         $payload = json_encode(['id' => 'evt_settle_1', 'type' => 'payment_intent.succeeded', 'data' => ['object' => ['id' => $intentId]]], JSON_THROW_ON_ERROR);
-        $signature = hash_hmac('sha256', $payload, 'test_webhook_secret');
+        // Real Stripe signature scheme (t=...,v1=...), as sent by live webhooks.
+        $timestamp = time();
+        $signature = sprintf('t=%d,v1=%s', $timestamp, hash_hmac('sha256', $timestamp . '.' . $payload, 'test_webhook_secret'));
         $response = $this->router->dispatch(new Request('POST', '/api/v1/webhooks/stripe', ['Stripe-Signature' => $signature], json_decode($payload, true), [], $payload));
         self::assertSame(200, $response->statusCode);
 

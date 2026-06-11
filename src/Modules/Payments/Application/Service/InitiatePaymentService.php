@@ -17,6 +17,7 @@ final class InitiatePaymentService
         private BookingRepository $bookings,
         private PaymentRepository $payments,
         private StripeGateway $stripe,
+        private string $paymentMode = 'simulation',
     ) {
     }
 
@@ -60,6 +61,7 @@ final class InitiatePaymentService
             'payment_id' => $payment['payment_id'],
             'state' => $payment['state'],
             'amount' => $payment['amount'],
+            'payment_mode' => $this->paymentMode,
             'gateway_status' => ['provider' => 'stripe', 'status' => $gateway['status']],
             'stripe' => ['payment_intent_id' => $gateway['payment_intent_id'], 'client_secret' => $gateway['client_secret']],
         ];
