@@ -46,7 +46,7 @@ export default function OpeningsPage() {
   const [providerId, setProviderId] = useState('');
   const [offeringOpen, setOfferingOpen] = useState(false);
   const [openingOpen, setOpeningOpen] = useState(false);
-  const [offeringForm, setOfferingForm] = useState({ name: '', duration_minutes: 30, amount_minor: 2500 });
+  const [offeringForm, setOfferingForm] = useState({ name: '', duration_minutes: 30, price_eur: 25 });
   const [openingForm, setOpeningForm] = useState({ service_offering_id: '', starts_at: plusHours(2), ends_at: plusHours(3) });
   const queryClient = useQueryClient();
 
@@ -78,7 +78,7 @@ export default function OpeningsPage() {
       createOffering(providerId, {
         name: offeringForm.name,
         duration_minutes: Number(offeringForm.duration_minutes),
-        base_price: { currency: 'EUR', amount_minor: Number(offeringForm.amount_minor) },
+        base_price: { currency: 'EUR', amount_minor: Math.round(Number(offeringForm.price_eur) * 100) },
       }),
     onSuccess: () => {
       refresh();
@@ -163,12 +163,13 @@ export default function OpeningsPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Price (EUR cents)</Label>
+                  <Label>Price (EUR)</Label>
                   <Input
                     type="number"
                     min={0}
-                    value={offeringForm.amount_minor}
-                    onChange={(e) => setOfferingForm((f) => ({ ...f, amount_minor: Number(e.target.value) }))}
+                    step="0.01"
+                    value={offeringForm.price_eur}
+                    onChange={(e) => setOfferingForm((f) => ({ ...f, price_eur: Number(e.target.value) }))}
                     required
                   />
                 </div>

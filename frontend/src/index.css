@@ -129,4 +129,10 @@
   html {
     @apply font-sans;
   }
+  /* Native select popups don't inherit page theming; without this,
+     options can render white-on-white in dark mode. */
+  select option {
+    background-color: var(--popover);
+    color: var(--popover-foreground);
+  }
 }
