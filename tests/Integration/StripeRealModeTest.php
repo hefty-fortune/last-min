@@ -70,6 +70,7 @@ final class StripeRealModeTest extends TestCase
             new InitiatePaymentService(new PdoBookingRepository($pdo), new PdoPaymentRepository($pdo), new StubStripeGateway(), 'real'),
             new GetPaymentService(new PdoPaymentRepository($pdo), new PdoProviderRepository($pdo)),
             new SettlePaymentOutcomeService($tx, new PdoPaymentRepository($pdo), new PdoBookingRepository($pdo), new PdoOpeningRepository($pdo)),
+            new PdoPaymentRepository($pdo),
             new IdempotencyExecutor(new PdoIdempotencyStore($pdo)),
             simulationEnabled: false,
         );

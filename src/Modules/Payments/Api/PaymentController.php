@@ -9,6 +9,7 @@ use App\Common\Http\Request;
 use App\Common\Security\ActorContext;
 use App\Common\Api\ApiError;
 use App\Common\Api\ApiException;
+use App\Modules\Payments\Application\Port\PaymentRepository;
 use App\Modules\Payments\Application\Service\GetPaymentService;
 use App\Modules\Payments\Application\Service\InitiatePaymentService;
 use App\Modules\Payments\Application\Service\SettlePaymentOutcomeService;
@@ -21,6 +22,7 @@ final class PaymentController
         private InitiatePaymentService $service,
         private GetPaymentService $getService,
         private SettlePaymentOutcomeService $settlement,
+        private PaymentRepository $payments,
         private IdempotencyExecutor $idempotency,
         private bool $simulationEnabled = true,
     ) {
@@ -125,7 +127,7 @@ final class PaymentController
     )]
     public function simulateSucceed(ActorContext $actor, string $paymentId): ApiResponse
     {
-        $this->assertCanSimulate($actor);
+        $this->assertCanSimulate($actor, $paymentId);
         $data = $this->settlement->succeed($paymentId);
 
         return ApiResponse::ok(['data' => $data, 'meta' => ['request_id' => uniqid('req_', true)]]);
@@ -146,21 +148,32 @@ final class PaymentController
     )]
     public function simulateFail(ActorContext $actor, Request $request, string $paymentId): ApiResponse
     {
-        $this->assertCanSimulate($actor);
+        $this->assertCanSimulate($actor, $paymentId);
         $reason = isset($request->body['reason']) ? (string) $request->body['reason'] : 'simulated_failure';
         $data = $this->settlement->fail($paymentId, $reason);
 
         return ApiResponse::ok(['data' => $data, 'meta' => ['request_id' => uniqid('req_', true)]]);
     }
 
-    private function assertCanSimulate(ActorContext $actor): void
+    private function assertCanSimulate(ActorContext $actor, string $paymentId): void
     {
-        if (!$actor->hasRole('admin') && !$actor->hasRole('super-admin')) {
-            throw new ApiException(403, new ApiError('FORBIDDEN_ROLE_MISSING', 'Admin role is required.'));
-        }
-
         if (!$this->simulationEnabled) {
             throw new ApiException(403, new ApiError('SIMULATION_DISABLED', 'Payment simulation is disabled when STRIPE_MODE=real; outcomes arrive via Stripe webhooks.'));
         }
+
+        if ($actor->hasRole('admin') || $actor->hasRole('super-admin')) {
+            return;
+        }
+
+        // In simulation mode the paying client settles their own payment —
+        // the stand-in for confirming the payment with Stripe in real mode.
+        if ($actor->hasRole('client') && $actor->userProfileId !== null) {
+            $payment = $this->payments->findById($paymentId);
+            if ($payment !== null && $payment['client_user_profile_id'] === $actor->userProfileId) {
+                return;
+            }
+        }
+
+        throw new ApiException(403, new ApiError('FORBIDDEN_PAYMENT_SCOPE', 'Actor cannot settle this payment.'));
     }
 }

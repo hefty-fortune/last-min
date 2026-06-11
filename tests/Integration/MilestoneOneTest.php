@@ -195,6 +195,7 @@ final class MilestoneOneTest extends TestCase
                 new InitiatePaymentService(new PdoBookingRepository($this->pdo), new PdoPaymentRepository($this->pdo), new StubStripeGateway()),
                 new GetPaymentService(new PdoPaymentRepository($this->pdo), $providerRepository),
                 $settlement = new SettlePaymentOutcomeService($tx, new PdoPaymentRepository($this->pdo), new PdoBookingRepository($this->pdo), $openingRepository),
+                new PdoPaymentRepository($this->pdo),
                 $idempotency
             ),
             new RefundController(
@@ -1012,8 +1013,34 @@ final class MilestoneOneTest extends TestCase
         self::assertSame(409, $again->statusCode);
         self::assertSame('PAYMENT_STATE_INVALID', $again->body['error']['code']);
 
-        $denied = $this->router->dispatch(new Request('POST', "/api/v1/payments/$paymentId:simulate-succeed", $this->actorHeaders(['client']), []));
+        // A client who does NOT own the payment cannot settle it.
+        $foreignClient = [
+            'X-Actor-Id' => 'actor-2',
+            'X-Actor-Subject' => 'sso|user_2',
+            'X-Actor-Roles' => 'client',
+            'X-User-Profile-Id' => 'profile-client-2',
+        ];
+        $denied = $this->router->dispatch(new Request('POST', "/api/v1/payments/$paymentId:simulate-succeed", $foreignClient, []));
         self::assertSame(403, $denied->statusCode);
+        self::assertSame('FORBIDDEN_PAYMENT_SCOPE', $denied->body['error']['code']);
+    }
+
+    public function testClientCanSettleOwnSimulatedPayment(): void
+    {
+        $headers = $this->actorHeaders(['client']);
+        $headers['Idempotency-Key'] = 'idem-owner-settle-1';
+        $created = $this->router->dispatch(new Request('POST', '/api/v1/bookings', $headers, ['opening_id' => 'opening-1']));
+        $bookingId = $created->body['data']['booking_id'];
+
+        $payHeaders = $this->actorHeaders(['client']);
+        $payHeaders['Idempotency-Key'] = 'idem-owner-settle-pay-1';
+        $payment = $this->router->dispatch(new Request('POST', "/api/v1/bookings/$bookingId/payments/initiate", $payHeaders, ['payment_method_type' => 'card']));
+        $paymentId = $payment->body['data']['payment_id'];
+
+        // The paying client completes their own simulated payment.
+        $settled = $this->router->dispatch(new Request('POST', "/api/v1/payments/$paymentId:simulate-succeed", $this->actorHeaders(['client']), []));
+        self::assertSame(200, $settled->statusCode);
+        self::assertSame('confirmed', $settled->body['data']['booking']['state']);
     }
 
     public function testSimulatedPaymentFailureReleasesOpening(): void

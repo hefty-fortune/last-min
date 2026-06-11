@@ -196,6 +196,7 @@ final class AppKernel
                 new InitiatePaymentService(new PdoBookingRepository($pdo), new PdoPaymentRepository($pdo), $stripeGateway, $simulationEnabled ? 'simulation' : 'real'),
                 new GetPaymentService(new PdoPaymentRepository($pdo), $providerRepository),
                 $settlement = new SettlePaymentOutcomeService($tx, new PdoPaymentRepository($pdo), new PdoBookingRepository($pdo), $openingRepository),
+                new PdoPaymentRepository($pdo),
                 $idempotency,
                 $simulationEnabled
             ),

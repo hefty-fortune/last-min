@@ -29,7 +29,7 @@ const stateVariant = (state: string) => {
   return 'secondary';
 };
 
-function BookingCard({ booking, canSimulate }: { booking: MyBooking; canSimulate: boolean }) {
+function BookingCard({ booking }: { booking: MyBooking }) {
   const queryClient = useQueryClient();
   const isActive = ACTIVE_STATES.includes(booking.state);
   const [checkoutSecret, setCheckoutSecret] = useState<string | null>(null);
@@ -105,7 +105,7 @@ function BookingCard({ booking, canSimulate }: { booking: MyBooking; canSimulate
               {payMutation.isPending ? 'Starting...' : 'Pay'}
             </Button>
           )}
-          {isActive && payment?.state === 'initiated' && canSimulate && (
+          {isActive && payment?.state === 'initiated' && (
             <>
               <Button size="sm" onClick={() => succeedMutation.mutate(payment.payment_id)} disabled={succeedMutation.isPending}>
                 Complete payment (simulated)
@@ -114,9 +114,6 @@ function BookingCard({ booking, canSimulate }: { booking: MyBooking; canSimulate
                 Fail payment (simulated)
               </Button>
             </>
-          )}
-          {isActive && payment?.state === 'initiated' && !canSimulate && (
-            <span className="text-xs text-muted-foreground">Waiting for payment confirmation…</span>
           )}
         </div>
       </CardContent>
@@ -150,9 +147,6 @@ export default function MyBookingsPage() {
     return <Navigate to="/login" replace />;
   }
 
-  const canSimulate =
-    auth.status === 'authenticated' && auth.me.roles.some((r) => r === 'admin' || r === 'super-admin');
-
   return (
     <div className="space-y-6">
       <div>
@@ -174,7 +168,7 @@ export default function MyBookingsPage() {
       ) : (
         <div className="space-y-3">
           {bookings.map((b) => (
-            <BookingCard key={b.booking_id} booking={b} canSimulate={canSimulate} />
+            <BookingCard key={b.booking_id} booking={b} />
           ))}
         </div>
       )}

@@ -412,6 +412,7 @@ docker compose up --build -d
 
 ## Pointers to deeper docs
 
+- Manual testing guide (per-role click-through scripts): `docs/manual-testing-guide.md`
 - Docker local development details: `docs/13-backend/local-development.md`
 - Admin bearer bootstrap notes: `docs/11-technical-documentation/local-dev-admin-auth.md`
 - Backend architecture index: `docs/13-backend/README.md`
