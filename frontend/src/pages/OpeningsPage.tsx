@@ -8,7 +8,6 @@ import {
   createOpening,
   publishOpening,
   cancelOpening,
-  createBooking,
 } from '@/lib/api';
 import {
   Button,
@@ -117,15 +116,6 @@ export default function OpeningsPage() {
     onSuccess: () => {
       refresh();
       toast.success('Opening cancelled');
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const bookMutation = useMutation({
-    mutationFn: (openingId: string) => createBooking(openingId),
-    onSuccess: (r) => {
-      refresh();
-      toast.success(`Booked! Booking ${r.data.booking_id.slice(0, 8)}… is reserved — continue on the Bookings page.`);
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -288,11 +278,6 @@ export default function OpeningsPage() {
                       {o.status === 'draft' && (
                         <Button size="sm" onClick={() => publishMutation.mutate(o.opening_id)} disabled={publishMutation.isPending}>
                           Publish
-                        </Button>
-                      )}
-                      {o.status === 'published' && (
-                        <Button size="sm" onClick={() => bookMutation.mutate(o.opening_id)} disabled={bookMutation.isPending}>
-                          Book
                         </Button>
                       )}
                       {(o.status === 'draft' || o.status === 'published') && (

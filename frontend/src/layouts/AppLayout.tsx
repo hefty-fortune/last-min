@@ -18,6 +18,12 @@ export default function AppLayout() {
     return <Navigate to="/login" replace />;
   }
 
+  // The dashboard is for operators; clients live in the storefront.
+  const isAdmin = auth.me.roles.some((r) => r === 'admin' || r === 'super-admin');
+  if (!isAdmin) {
+    return <Navigate to="/market" replace />;
+  }
+
   return (
     <SidebarProvider>
       <AppSidebar />

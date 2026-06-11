@@ -96,37 +96,42 @@ final class PdoOpeningRepository implements OpeningRepository
     public function listPublished(array $filters, int $limit): array
     {
         $safeLimit = max(1, min($limit, 100));
-        $conditions = ['status = :status'];
+        $conditions = ['o.status = :status'];
         $params = ['status' => 'published'];
 
         if (isset($filters['provider_id']) && trim((string) $filters['provider_id']) !== '') {
-            $conditions[] = 'provider_id = :provider_id';
+            $conditions[] = 'o.provider_id = :provider_id';
             $params['provider_id'] = (string) $filters['provider_id'];
         }
 
         if (isset($filters['service_offering_id']) && trim((string) $filters['service_offering_id']) !== '') {
-            $conditions[] = 'service_offering_id = :service_offering_id';
+            $conditions[] = 'o.service_offering_id = :service_offering_id';
             $params['service_offering_id'] = (string) $filters['service_offering_id'];
         }
 
         if (isset($filters['starts_after']) && trim((string) $filters['starts_after']) !== '') {
-            $conditions[] = 'starts_at >= :starts_after';
+            $conditions[] = 'o.starts_at >= :starts_after';
             $params['starts_after'] = (string) $filters['starts_after'];
         }
 
         if (isset($filters['starts_before']) && trim((string) $filters['starts_before']) !== '') {
-            $conditions[] = 'starts_at <= :starts_before';
+            $conditions[] = 'o.starts_at <= :starts_before';
             $params['starts_before'] = (string) $filters['starts_before'];
         }
 
         if (isset($filters['max_price_minor']) && $filters['max_price_minor'] !== '') {
-            $conditions[] = 'price_amount <= :max_price_minor';
+            $conditions[] = 'o.price_amount <= :max_price_minor';
             $params['max_price_minor'] = (int) $filters['max_price_minor'];
         }
 
-        $stmt = $this->pdo->prepare(
-            sprintf('SELECT * FROM openings WHERE %s ORDER BY starts_at ASC LIMIT :limit', implode(' AND ', $conditions))
-        );
+        $stmt = $this->pdo->prepare(sprintf(
+            'SELECT o.*, p.display_name AS provider_display_name, s.name AS offering_name, s.duration_minutes AS offering_duration_minutes
+             FROM openings o
+             LEFT JOIN providers p ON p.id = o.provider_id
+             LEFT JOIN service_offerings s ON s.id = o.service_offering_id
+             WHERE %s ORDER BY o.starts_at ASC LIMIT :limit',
+            implode(' AND ', $conditions)
+        ));
 
         foreach ($params as $key => $value) {
             $stmt->bindValue(
@@ -140,7 +145,15 @@ final class PdoOpeningRepository implements OpeningRepository
 
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        return array_map(fn (array $row): array => $this->mapOpening($row), $rows);
+        return array_map(function (array $row): array {
+            $opening = $this->mapOpening($row);
+            // Public storefront projection: human-readable context for the card.
+            $opening['provider_display_name'] = isset($row['provider_display_name']) ? (string) $row['provider_display_name'] : null;
+            $opening['offering_name'] = isset($row['offering_name']) ? (string) $row['offering_name'] : null;
+            $opening['offering_duration_minutes'] = isset($row['offering_duration_minutes']) ? (int) $row['offering_duration_minutes'] : null;
+
+            return $opening;
+        }, $rows);
     }
 
     public function lockById(string $openingId): ?array

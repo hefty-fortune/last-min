@@ -239,6 +239,19 @@ export const markClientNoShow = (bookingId: string) =>
     body: JSON.stringify({}),
   });
 
+// ── Client storefront ──
+
+export const listPublicOpenings = () =>
+  request<{ data: PublicOpening[]; meta: Meta }>('/public/openings');
+
+export const listMyBookings = (state?: string) =>
+  request<{ data: MyBooking[]; meta: Meta }>(
+    `/me/bookings${state ? `?state=${state}` : ''}`,
+  );
+
+export const getBooking = (bookingId: string) =>
+  request<{ data: BookingDetail; meta: Meta }>(`/bookings/${bookingId}`);
+
 // ── Marketplace: Refunds ──
 
 export const listAdminRefunds = (state?: string) =>
@@ -407,4 +420,25 @@ export type Refund = {
   decided_by_actor_id: string | null;
   decided_at: string | null;
   created_at: string;
+};
+
+export type PublicOpening = Opening & {
+  provider_display_name: string | null;
+  offering_name: string | null;
+  offering_duration_minutes: number | null;
+};
+
+export type MyBooking = {
+  booking_id: string;
+  opening_id: string;
+  provider_id: string;
+  state: string;
+  amount: Money;
+  reserved_at: string;
+  expires_at: string | null;
+  created_at: string;
+};
+
+export type BookingDetail = MyBooking & {
+  payment: { payment_id: string; state: string; amount: Money } | null;
 };

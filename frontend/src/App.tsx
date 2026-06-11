@@ -4,6 +4,7 @@ import { ThemeProvider } from 'next-themes';
 import { Toaster, TooltipProvider } from '@/components/common';
 import { AuthProvider } from '@/lib/auth';
 import AppLayout from '@/layouts/AppLayout';
+import MarketLayout from '@/layouts/MarketLayout';
 import LoginPage from '@/pages/LoginPage';
 import OrganizationsPage from '@/pages/OrganizationsPage';
 import OrganizationDetailPage from '@/pages/OrganizationDetailPage';
@@ -15,6 +16,8 @@ import ApiKeysPage from '@/pages/ApiKeysPage';
 import OpeningsPage from '@/pages/OpeningsPage';
 import BookingsPage from '@/pages/BookingsPage';
 import RefundsPage from '@/pages/RefundsPage';
+import MarketPage from '@/pages/MarketPage';
+import MyBookingsPage from '@/pages/MyBookingsPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -31,8 +34,12 @@ export default function App() {
             <BrowserRouter>
               <Routes>
                 <Route path="/login" element={<LoginPage />} />
+                <Route element={<MarketLayout />}>
+                  <Route index element={<Navigate to="/market" replace />} />
+                  <Route path="/market" element={<MarketPage />} />
+                  <Route path="/my-bookings" element={<MyBookingsPage />} />
+                </Route>
                 <Route element={<AppLayout />}>
-                  <Route index element={<Navigate to="/organizations" replace />} />
                   <Route path="/organizations" element={<OrganizationsPage />} />
                   <Route path="/organizations/:id" element={<OrganizationDetailPage />} />
                   <Route path="/providers" element={<ProvidersPage />} />

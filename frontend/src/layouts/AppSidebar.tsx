@@ -28,6 +28,7 @@ const marketplaceNav = [
   { label: 'Openings', path: '/openings' },
   { label: 'Bookings', path: '/bookings' },
   { label: 'Refunds', path: '/refunds' },
+  { label: 'Storefront', path: '/market' },
 ];
 
 export function AppSidebar() {
