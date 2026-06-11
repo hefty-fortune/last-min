@@ -11,7 +11,7 @@ exports[`ApiKeysPage > renders empty state 1`] = `
       <h1
         class="text-2xl font-semibold"
       >
-        API Keys
+        API keys
       </h1>
       <button
         aria-expanded="false"
@@ -23,7 +23,7 @@ exports[`ApiKeysPage > renders empty state 1`] = `
         tabindex="0"
         type="button"
       >
-        Create API Key
+        Create API key
       </button>
     </div>
     <div
@@ -39,7 +39,7 @@ exports[`ApiKeysPage > renders empty state 1`] = `
           class="font-heading text-base leading-snug font-medium group-data-[size=sm]/card:text-sm"
           data-slot="card-title"
         >
-          All API Keys
+          All API keys
         </div>
       </div>
       <div
@@ -68,7 +68,7 @@ exports[`ApiKeysPage > renders with data 1`] = `
       <h1
         class="text-2xl font-semibold"
       >
-        API Keys
+        API keys
       </h1>
       <button
         aria-expanded="false"
@@ -80,7 +80,7 @@ exports[`ApiKeysPage > renders with data 1`] = `
         tabindex="0"
         type="button"
       >
-        Create API Key
+        Create API key
       </button>
     </div>
     <div
@@ -96,7 +96,7 @@ exports[`ApiKeysPage > renders with data 1`] = `
           class="font-heading text-base leading-snug font-medium group-data-[size=sm]/card:text-sm"
           data-slot="card-title"
         >
-          All API Keys
+          All API keys
         </div>
       </div>
       <div

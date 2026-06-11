@@ -80,10 +80,10 @@ export default function UsersPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Users</h1>
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger render={<Button />}>Create User</DialogTrigger>
+          <DialogTrigger render={<Button />}>Create user</DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>New User</DialogTitle>
+              <DialogTitle>New user</DialogTitle>
             </DialogHeader>
             <form
               className="space-y-4"
@@ -98,7 +98,7 @@ export default function UsersPage() {
             >
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>First Name</Label>
+                  <Label>First name</Label>
                   <Input
                     value={form.first_name}
                     onChange={(e) => setForm((f) => ({ ...f, first_name: e.target.value }))}
@@ -106,7 +106,7 @@ export default function UsersPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Last Name</Label>
+                  <Label>Last name</Label>
                   <Input
                     value={form.last_name}
                     onChange={(e) => setForm((f) => ({ ...f, last_name: e.target.value }))}
@@ -188,7 +188,7 @@ export default function UsersPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>All Users</CardTitle>
+          <CardTitle>All users</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (

@@ -21,7 +21,7 @@ const adminNav = [
   { label: 'Organizations', path: '/organizations' },
   { label: 'Providers', path: '/providers' },
   { label: 'Users', path: '/users' },
-  { label: 'API Keys', path: '/api-keys' },
+  { label: 'API keys', path: '/api-keys' },
 ];
 
 const marketplaceNav = [
@@ -40,7 +40,7 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader className="p-4">
-        <h2 className="text-lg font-semibold">Access Dashboard</h2>
+        <h2 className="text-lg font-semibold">Access dashboard</h2>
         {me && (
           <div className="mt-2 space-y-1">
             <p className="text-xs text-muted-foreground truncate">
@@ -93,14 +93,14 @@ export function AppSidebar() {
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
         >
           {theme === 'dark' ? <Sun className="size-4 mr-2" /> : <Moon className="size-4 mr-2" />}
-          {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+          {theme === 'dark' ? 'Light mode' : 'Dark mode'}
         </Button>
         <Button
           variant="outline"
           className="w-full"
           onClick={() => auth.logout()}
         >
-          Sign Out
+          Sign out
         </Button>
       </SidebarFooter>
     </Sidebar>

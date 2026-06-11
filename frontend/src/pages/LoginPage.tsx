@@ -37,7 +37,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Access Dashboard</CardTitle>
+          <CardTitle className="text-2xl">Access dashboard</CardTitle>
           <CardDescription>
             Sign in with your credentials
           </CardDescription>

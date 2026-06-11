@@ -91,15 +91,15 @@ export default function OrganizationDetailPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Organization Details</CardTitle>
+          <CardTitle>Organization details</CardTitle>
         </CardHeader>
         <CardContent>
           <dl className="grid grid-cols-2 gap-4 text-sm">
-            <div><dt className="text-muted-foreground">Legal Name</dt><dd>{org.legal_name}</dd></div>
-            <div><dt className="text-muted-foreground">Display Name</dt><dd>{org.display_name}</dd></div>
+            <div><dt className="text-muted-foreground">Legal name</dt><dd>{org.legal_name}</dd></div>
+            <div><dt className="text-muted-foreground">Display name</dt><dd>{org.display_name}</dd></div>
             <div><dt className="text-muted-foreground">Tax ID</dt><dd>{org.tax_id ?? '—'}</dd></div>
-            <div><dt className="text-muted-foreground">Contact Email</dt><dd>{org.contact_email}</dd></div>
-            <div><dt className="text-muted-foreground">Contact Phone</dt><dd>{org.contact_phone}</dd></div>
+            <div><dt className="text-muted-foreground">Contact email</dt><dd>{org.contact_email}</dd></div>
+            <div><dt className="text-muted-foreground">Contact phone</dt><dd>{org.contact_phone}</dd></div>
             <div><dt className="text-muted-foreground">ID</dt><dd className="font-mono text-xs">{org.organization_id}</dd></div>
           </dl>
         </CardContent>
@@ -109,14 +109,14 @@ export default function OrganizationDetailPage() {
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Providers ({providers?.length ?? 0})</CardTitle>
           <Dialog open={addProviderOpen} onOpenChange={setAddProviderOpen}>
-            <DialogTrigger render={<Button size="sm">Add Provider</Button>} />
+            <DialogTrigger render={<Button size="sm">Add provider</Button>} />
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Add Provider</DialogTitle>
+                <DialogTitle>Add provider</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 py-2">
                 <div className="space-y-2">
-                  <Label htmlFor="provider-name">Display Name</Label>
+                  <Label htmlFor="provider-name">Display name</Label>
                   <Input
                     id="provider-name"
                     value={newProviderName}
@@ -130,7 +130,7 @@ export default function OrganizationDetailPage() {
                   onClick={() => addProvider.mutate(newProviderName)}
                   disabled={!newProviderName.trim() || addProvider.isPending}
                 >
-                  {addProvider.isPending ? 'Adding...' : 'Add Provider'}
+                  {addProvider.isPending ? 'Adding...' : 'Add provider'}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -143,7 +143,7 @@ export default function OrganizationDetailPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Display Name</TableHead>
+                  <TableHead>Display name</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead />
                 </TableRow>
@@ -172,15 +172,15 @@ export default function OrganizationDetailPage() {
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Users ({allUsers?.length ?? 0})</CardTitle>
           <Dialog open={addUserOpen} onOpenChange={setAddUserOpen}>
-            <DialogTrigger render={<Button size="sm">Add User</Button>} />
+            <DialogTrigger render={<Button size="sm">Add user</Button>} />
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Add User</DialogTitle>
+                <DialogTitle>Add user</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 py-2">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="user-first-name">First Name</Label>
+                    <Label htmlFor="user-first-name">First name</Label>
                     <Input
                       id="user-first-name"
                       value={newUser.first_name}
@@ -188,7 +188,7 @@ export default function OrganizationDetailPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="user-last-name">Last Name</Label>
+                    <Label htmlFor="user-last-name">Last name</Label>
                     <Input
                       id="user-last-name"
                       value={newUser.last_name}
@@ -233,7 +233,7 @@ export default function OrganizationDetailPage() {
                   onClick={() => addUser.mutate()}
                   disabled={!newUser.first_name.trim() || !newUser.email.trim() || !newUser.provider_id || addUser.isPending}
                 >
-                  {addUser.isPending ? 'Adding...' : 'Add User'}
+                  {addUser.isPending ? 'Adding...' : 'Add user'}
                 </Button>
               </DialogFooter>
             </DialogContent>

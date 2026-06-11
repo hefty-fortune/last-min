@@ -136,10 +136,10 @@ export default function OpeningsPage() {
         <h1 className="text-2xl font-semibold">Openings</h1>
         <div className="flex gap-2">
           <Dialog open={offeringOpen} onOpenChange={setOfferingOpen}>
-            <DialogTrigger render={<Button variant="outline" disabled={!providerId} />}>New Offering</DialogTrigger>
+            <DialogTrigger render={<Button variant="outline" disabled={!providerId} />}>New offering</DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>New Service Offering</DialogTitle>
+                <DialogTitle>New service offering</DialogTitle>
               </DialogHeader>
               <form
                 className="space-y-4"
@@ -173,16 +173,16 @@ export default function OpeningsPage() {
                   />
                 </div>
                 <Button type="submit" className="w-full" disabled={offeringMutation.isPending}>
-                  {offeringMutation.isPending ? 'Creating...' : 'Create Offering'}
+                  {offeringMutation.isPending ? 'Creating...' : 'Create offering'}
                 </Button>
               </form>
             </DialogContent>
           </Dialog>
           <Dialog open={openingOpen} onOpenChange={setOpeningOpen}>
-            <DialogTrigger render={<Button disabled={!providerId} />}>New Opening</DialogTrigger>
+            <DialogTrigger render={<Button disabled={!providerId} />}>New opening</DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>New Opening (draft)</DialogTitle>
+                <DialogTitle>New opening (draft)</DialogTitle>
               </DialogHeader>
               <form
                 className="space-y-4"
@@ -208,7 +208,7 @@ export default function OpeningsPage() {
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Starts At</Label>
+                  <Label>Starts at</Label>
                   <Input
                     type="datetime-local"
                     value={openingForm.starts_at}
@@ -217,7 +217,7 @@ export default function OpeningsPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Ends At</Label>
+                  <Label>Ends at</Label>
                   <Input
                     type="datetime-local"
                     value={openingForm.ends_at}
@@ -226,7 +226,7 @@ export default function OpeningsPage() {
                   />
                 </div>
                 <Button type="submit" className="w-full" disabled={openingMutation.isPending}>
-                  {openingMutation.isPending ? 'Creating...' : 'Create Draft'}
+                  {openingMutation.isPending ? 'Creating...' : 'Create draft'}
                 </Button>
               </form>
             </DialogContent>

@@ -65,10 +65,10 @@ export default function OrganizationsPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Organizations</h1>
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger render={<Button />}>Create Organization</DialogTrigger>
+          <DialogTrigger render={<Button />}>Create organization</DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>New Organization</DialogTitle>
+              <DialogTitle>New organization</DialogTitle>
             </DialogHeader>
             <form
               className="space-y-4"
@@ -80,11 +80,11 @@ export default function OrganizationsPage() {
               }}
             >
               <div className="space-y-2">
-                <Label>Legal Name</Label>
+                <Label>Legal name</Label>
                 <Input value={form.legal_name} onChange={set('legal_name')} required />
               </div>
               <div className="space-y-2">
-                <Label>Display Name</Label>
+                <Label>Display name</Label>
                 <Input value={form.display_name} onChange={set('display_name')} required />
               </div>
               <div className="space-y-2">
@@ -92,11 +92,11 @@ export default function OrganizationsPage() {
                 <Input value={form.tax_id} onChange={set('tax_id')} />
               </div>
               <div className="space-y-2">
-                <Label>Contact Email</Label>
+                <Label>Contact email</Label>
                 <Input type="email" value={form.contact_email} onChange={set('contact_email')} required />
               </div>
               <div className="space-y-2">
-                <Label>Contact Phone</Label>
+                <Label>Contact phone</Label>
                 <Input value={form.contact_phone} onChange={set('contact_phone')} required />
               </div>
               <Button type="submit" className="w-full" disabled={mutation.isPending}>
@@ -109,7 +109,7 @@ export default function OrganizationsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>All Organizations</CardTitle>
+          <CardTitle>All organizations</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -120,8 +120,8 @@ export default function OrganizationsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Display Name</TableHead>
-                  <TableHead>Legal Name</TableHead>
+                  <TableHead>Display name</TableHead>
+                  <TableHead>Legal name</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Phone</TableHead>
                   <TableHead />

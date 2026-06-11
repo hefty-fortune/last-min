@@ -85,11 +85,11 @@ function EditDetailsCard({ user, userId, queryClient }: { user: { first_name: st
         >
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>First Name</Label>
+              <Label>First name</Label>
               <Input value={form.first_name} onChange={(e) => setForm((f) => ({ ...f, first_name: e.target.value }))} required />
             </div>
             <div className="space-y-2">
-              <Label>Last Name</Label>
+              <Label>Last name</Label>
               <Input value={form.last_name} onChange={(e) => setForm((f) => ({ ...f, last_name: e.target.value }))} required />
             </div>
           </div>
@@ -179,10 +179,10 @@ function ResetPasswordCard({ userId }: { userId: string }) {
       </CardHeader>
       <CardContent>
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger render={<Button variant="destructive" />}>Reset Password</DialogTrigger>
+          <DialogTrigger render={<Button variant="destructive" />}>Reset password</DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Reset User Password</DialogTitle>
+              <DialogTitle>Reset user password</DialogTitle>
             </DialogHeader>
             <form
               className="space-y-4"
@@ -193,7 +193,7 @@ function ResetPasswordCard({ userId }: { userId: string }) {
               }}
             >
               <div className="space-y-2">
-                <Label>New Password</Label>
+                <Label>New password</Label>
                 <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter new password" required />
               </div>
               <Button type="submit" variant="destructive" className="w-full" disabled={mutation.isPending}>

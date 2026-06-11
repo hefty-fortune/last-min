@@ -66,12 +66,12 @@ export default function ApiKeysPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">API Keys</h1>
+        <h1 className="text-2xl font-semibold">API keys</h1>
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger render={<Button />}>Create API Key</DialogTrigger>
+          <DialogTrigger render={<Button />}>Create API key</DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>New API Key</DialogTitle>
+              <DialogTitle>New API key</DialogTitle>
             </DialogHeader>
             <form
               className="space-y-4"
@@ -130,7 +130,7 @@ export default function ApiKeysPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>All API Keys</CardTitle>
+          <CardTitle>All API keys</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -142,9 +142,9 @@ export default function ApiKeysPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
-                  <TableHead>Key Prefix</TableHead>
-                  <TableHead>Created By</TableHead>
-                  <TableHead>Created At</TableHead>
+                  <TableHead>Key prefix</TableHead>
+                  <TableHead>Created by</TableHead>
+                  <TableHead>Created at</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead />
                 </TableRow>

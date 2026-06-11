@@ -66,7 +66,7 @@ export default function RefundsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>All Refunds</CardTitle>
+          <CardTitle>All refunds</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -84,7 +84,7 @@ export default function RefundsPage() {
                   <TableHead>Amount</TableHead>
                   <TableHead>Reason</TableHead>
                   <TableHead>State</TableHead>
-                  <TableHead>Decided By</TableHead>
+                  <TableHead>Decided by</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>

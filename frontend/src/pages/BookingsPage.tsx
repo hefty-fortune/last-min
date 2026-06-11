@@ -115,7 +115,7 @@ export default function BookingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>All Bookings</CardTitle>
+          <CardTitle>All bookings</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -157,10 +157,10 @@ export default function BookingsPage() {
                       {b.payment && b.payment.state === 'initiated' && (
                         <>
                           <Button size="sm" onClick={() => succeedMutation.mutate(b.payment!.payment_id)} disabled={succeedMutation.isPending}>
-                            Simulate Success
+                            Simulate success
                           </Button>
                           <Button size="sm" variant="outline" onClick={() => failMutation.mutate(b.payment!.payment_id)} disabled={failMutation.isPending}>
-                            Simulate Failure
+                            Simulate failure
                           </Button>
                         </>
                       )}
@@ -172,7 +172,7 @@ export default function BookingsPage() {
                             onClick={() => providerNoShowMutation.mutate(b.booking_id)}
                             disabled={providerNoShowMutation.isPending}
                           >
-                            Provider No-Show
+                            Provider no-show
                           </Button>
                           <Button
                             size="sm"
@@ -180,7 +180,7 @@ export default function BookingsPage() {
                             onClick={() => clientNoShowMutation.mutate(b.booking_id)}
                             disabled={clientNoShowMutation.isPending}
                           >
-                            Client No-Show
+                            Client no-show
                           </Button>
                         </>
                       )}

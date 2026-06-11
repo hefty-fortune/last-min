@@ -66,10 +66,10 @@ export default function ProvidersPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Providers</h1>
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger render={<Button />}>Create Provider</DialogTrigger>
+          <DialogTrigger render={<Button />}>Create provider</DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>New Provider</DialogTitle>
+              <DialogTitle>New provider</DialogTitle>
             </DialogHeader>
             <form
               className="space-y-4"
@@ -95,7 +95,7 @@ export default function ProvidersPage() {
                 </select>
               </div>
               <div className="space-y-2">
-                <Label>Display Name</Label>
+                <Label>Display name</Label>
                 <Input
                   value={form.display_name}
                   onChange={(e) => setForm((f) => ({ ...f, display_name: e.target.value }))}
@@ -122,7 +122,7 @@ export default function ProvidersPage() {
       </div>
 
       <div className="flex gap-2 items-center">
-        <Label className="text-sm">Filter by Org:</Label>
+        <Label className="text-sm">Filter by org:</Label>
         <select
           className="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm"
           value={filterOrg}
@@ -139,7 +139,7 @@ export default function ProvidersPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>All Providers</CardTitle>
+          <CardTitle>All providers</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -150,7 +150,7 @@ export default function ProvidersPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Display Name</TableHead>
+                  <TableHead>Display name</TableHead>
                   <TableHead>Organization</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead />

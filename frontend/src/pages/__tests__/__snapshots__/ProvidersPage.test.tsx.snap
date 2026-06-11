@@ -23,7 +23,7 @@ exports[`ProvidersPage > renders empty state 1`] = `
         tabindex="0"
         type="button"
       >
-        Create Provider
+        Create provider
       </button>
     </div>
     <div
@@ -33,7 +33,7 @@ exports[`ProvidersPage > renders empty state 1`] = `
         class="flex items-center gap-2 font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 text-sm"
         data-slot="label"
       >
-        Filter by Org:
+        Filter by org:
       </label>
       <select
         class="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm"
@@ -58,7 +58,7 @@ exports[`ProvidersPage > renders empty state 1`] = `
           class="font-heading text-base leading-snug font-medium group-data-[size=sm]/card:text-sm"
           data-slot="card-title"
         >
-          All Providers
+          All providers
         </div>
       </div>
       <div
@@ -99,7 +99,7 @@ exports[`ProvidersPage > renders with data 1`] = `
         tabindex="0"
         type="button"
       >
-        Create Provider
+        Create provider
       </button>
     </div>
     <div
@@ -109,7 +109,7 @@ exports[`ProvidersPage > renders with data 1`] = `
         class="flex items-center gap-2 font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 text-sm"
         data-slot="label"
       >
-        Filter by Org:
+        Filter by org:
       </label>
       <select
         class="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm"
@@ -134,7 +134,7 @@ exports[`ProvidersPage > renders with data 1`] = `
           class="font-heading text-base leading-snug font-medium group-data-[size=sm]/card:text-sm"
           data-slot="card-title"
         >
-          All Providers
+          All providers
         </div>
       </div>
       <div

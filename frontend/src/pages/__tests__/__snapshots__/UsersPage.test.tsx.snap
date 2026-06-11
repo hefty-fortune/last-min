@@ -23,7 +23,7 @@ exports[`UsersPage > renders empty state 1`] = `
         tabindex="0"
         type="button"
       >
-        Create User
+        Create user
       </button>
     </div>
     <div
@@ -58,7 +58,7 @@ exports[`UsersPage > renders empty state 1`] = `
           class="font-heading text-base leading-snug font-medium group-data-[size=sm]/card:text-sm"
           data-slot="card-title"
         >
-          All Users
+          All users
         </div>
       </div>
       <div
@@ -99,7 +99,7 @@ exports[`UsersPage > renders with data 1`] = `
         tabindex="0"
         type="button"
       >
-        Create User
+        Create user
       </button>
     </div>
     <div
@@ -134,7 +134,7 @@ exports[`UsersPage > renders with data 1`] = `
           class="font-heading text-base leading-snug font-medium group-data-[size=sm]/card:text-sm"
           data-slot="card-title"
         >
-          All Users
+          All users
         </div>
       </div>
       <div

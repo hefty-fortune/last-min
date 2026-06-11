@@ -85,11 +85,11 @@ export default function ProviderDetailPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Provider Details</CardTitle>
+          <CardTitle>Provider details</CardTitle>
         </CardHeader>
         <CardContent>
           <dl className="grid grid-cols-2 gap-4 text-sm">
-            <div><dt className="text-muted-foreground">Display Name</dt><dd>{provider.display_name}</dd></div>
+            <div><dt className="text-muted-foreground">Display name</dt><dd>{provider.display_name}</dd></div>
             <div><dt className="text-muted-foreground">Status</dt><dd>{provider.status}</dd></div>
             <div><dt className="text-muted-foreground">Organization ID</dt><dd className="font-mono text-xs">{provider.organization_id}</dd></div>
             <div><dt className="text-muted-foreground">Provider ID</dt><dd className="font-mono text-xs">{provider.provider_id}</dd></div>
@@ -101,10 +101,10 @@ export default function ProviderDetailPage() {
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Users ({users?.length ?? 0})</CardTitle>
           <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger render={<Button size="sm" />}>Add User</DialogTrigger>
+            <DialogTrigger render={<Button size="sm" />}>Add user</DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>New User for {provider.display_name}</DialogTitle>
+                <DialogTitle>New user for {provider.display_name}</DialogTitle>
               </DialogHeader>
               <form
                 className="space-y-4"
@@ -116,11 +116,11 @@ export default function ProviderDetailPage() {
               >
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>First Name</Label>
+                    <Label>First name</Label>
                     <Input value={form.first_name} onChange={(e) => setForm((f) => ({ ...f, first_name: e.target.value }))} required />
                   </div>
                   <div className="space-y-2">
-                    <Label>Last Name</Label>
+                    <Label>Last name</Label>
                     <Input value={form.last_name} onChange={(e) => setForm((f) => ({ ...f, last_name: e.target.value }))} required />
                   </div>
                 </div>
@@ -143,7 +143,7 @@ export default function ProviderDetailPage() {
                   </div>
                 </div>
                 <Button type="submit" className="w-full" disabled={mutation.isPending}>
-                  {mutation.isPending ? 'Creating...' : 'Create User'}
+                  {mutation.isPending ? 'Creating...' : 'Create user'}
                 </Button>
               </form>
             </DialogContent>
