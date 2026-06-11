@@ -19,6 +19,9 @@ use App\Modules\AdminSetup\Api\UserAdminController;
 use App\Modules\AdminSetup\Application\Service\CreateOrganizationService;
 use App\Modules\AdminSetup\Application\Service\CreateProviderService as CreateAdminProviderService;
 use App\Modules\AdminSetup\Application\Service\CreateUserService;
+use App\Modules\AdminSetup\Application\Service\DeleteOrganizationService;
+use App\Modules\AdminSetup\Application\Service\DeleteProviderService;
+use App\Modules\AdminSetup\Application\Service\DeleteUserService;
 use App\Modules\AdminSetup\Application\Service\GetOrganizationService;
 use App\Modules\AdminSetup\Application\Service\GetProviderService;
 use App\Modules\AdminSetup\Application\Service\GetUserService;
@@ -35,6 +38,7 @@ use App\Modules\Booking\Api\BookingController;
 use App\Modules\Booking\Application\Service\CreateBookingService;
 use App\Modules\Booking\Application\Service\GetBookingService;
 use App\Modules\Booking\Application\Service\ListMyBookingsService;
+use App\Modules\Booking\Application\Service\ListProviderBookingsService;
 use App\Modules\Booking\Application\Service\MarkNoShowService;
 use App\Modules\Booking\Infrastructure\Persistence\PdoBookingRepository;
 use App\Modules\IdentityAccess\Api\ApiKeyController;
@@ -46,6 +50,7 @@ use App\Modules\IdentityAccess\Application\Service\DeleteApiKeyService;
 use App\Modules\IdentityAccess\Application\Service\ListApiKeysService;
 use App\Modules\IdentityAccess\Application\Service\LoginService;
 use App\Modules\IdentityAccess\Infrastructure\Persistence\PdoApiKeyRepository;
+use App\Modules\IdentityAccess\Infrastructure\Persistence\PdoLoginAttemptRepository;
 use App\Modules\IdentityAccess\Infrastructure\Persistence\PdoAuthSessionRepository;
 use App\Modules\IdentityAccess\Infrastructure\Persistence\PdoUserAuthRepository;
 use App\Modules\IdentityAccess\Infrastructure\Security\ApiKeyBearerTokenActorResolver;
@@ -53,6 +58,7 @@ use App\Modules\IdentityAccess\Infrastructure\Security\SessionBearerTokenActorRe
 use App\Modules\Openings\Api\OpeningController;
 use App\Modules\Openings\Application\Service\CancelOpeningService;
 use App\Modules\Openings\Application\Service\CreateOpeningService;
+use App\Modules\Openings\Application\Service\DeleteOpeningService;
 use App\Modules\Openings\Application\Service\GetOpeningService;
 use App\Modules\Openings\Application\Service\ListOpeningsService;
 use App\Modules\Openings\Application\Service\OpeningAccessService;
@@ -81,6 +87,7 @@ use App\Modules\Refunds\Application\Service\RequestRefundService;
 use App\Modules\Refunds\Infrastructure\Persistence\PdoRefundRepository;
 use App\Modules\ServiceCatalog\Api\OfferingController;
 use App\Modules\ServiceCatalog\Application\Service\CreateOfferingService;
+use App\Modules\ServiceCatalog\Application\Service\DeleteOfferingService;
 use App\Modules\ServiceCatalog\Application\Service\ListOfferingsService;
 use App\Modules\ServiceCatalog\Application\Service\OfferingAccessService;
 use App\Modules\ServiceCatalog\Application\Service\UpdateOfferingService;
@@ -133,12 +140,14 @@ final class AppKernel
             new OrganizationAdminController(
                 new CreateOrganizationService(new PdoOrganizationRepository($pdo)),
                 new GetOrganizationService(new PdoOrganizationRepository($pdo)),
-                new ListOrganizationsService(new PdoOrganizationRepository($pdo))
+                new ListOrganizationsService(new PdoOrganizationRepository($pdo)),
+                new DeleteOrganizationService(new PdoOrganizationRepository($pdo), $audit)
             ),
             new ProviderAdminController(
                 new CreateAdminProviderService(new PdoOrganizationRepository($pdo), new PdoAdminProviderRepository($pdo)),
                 new GetProviderService(new PdoAdminProviderRepository($pdo)),
-                new ListProvidersService(new PdoAdminProviderRepository($pdo))
+                new ListProvidersService(new PdoAdminProviderRepository($pdo)),
+                new DeleteProviderService(new PdoAdminProviderRepository($pdo), $audit)
             ),
             new UserAdminController(
                 new CreateUserService(new PdoAdminProviderRepository($pdo), new PdoUserRepository($pdo)),
@@ -146,10 +155,11 @@ final class AppKernel
                 new ListUsersService(new PdoUserRepository($pdo)),
                 new UpdateUserService(new PdoUserRepository($pdo)),
                 new UpdateUserRolesService(new PdoUserRepository($pdo)),
-                new ResetUserPasswordService(new PdoUserRepository($pdo))
+                new ResetUserPasswordService(new PdoUserRepository($pdo)),
+                new DeleteUserService(new PdoUserRepository($pdo), $audit)
             ),
             new ApiKeyController(new CreateApiKeyService($apiKeys), new DeleteApiKeyService($apiKeys), new ListApiKeysService($apiKeys)),
-            new AuthController(new LoginService($userAuth, $sessions)),
+            new AuthController(new LoginService($userAuth, $sessions, new PdoLoginAttemptRepository($pdo))),
             new MeController(new GetMeQueryService()),
             new ProviderController(
                 new CreateProviderService($providerRepository),
@@ -164,12 +174,14 @@ final class AppKernel
                 new ListOpeningsService($openingRepository, $openingAccess),
                 new PublishOpeningService($tx, $openingRepository, $openingAccess),
                 new CancelOpeningService($tx, $openingRepository, $openingAccess),
+                new DeleteOpeningService($openingRepository, $openingAccess, new PdoBookingRepository($pdo), $audit),
                 $idempotency
             ),
             new BookingController(
                 new CreateBookingService($tx, $openingRepository, new PdoBookingRepository($pdo)),
                 new GetBookingService(new PdoBookingRepository($pdo), new PdoPaymentRepository($pdo), $providerRepository),
                 new ListMyBookingsService(new PdoBookingRepository($pdo)),
+                new ListProviderBookingsService(new PdoBookingRepository($pdo), $providerRepository),
                 new MarkNoShowService(
                     $tx,
                     new PdoBookingRepository($pdo),
@@ -196,6 +208,7 @@ final class AppKernel
                 new CreateOfferingService(new PdoOfferingRepository($pdo), new OfferingAccessService($providerRepository)),
                 new ListOfferingsService(new PdoOfferingRepository($pdo), new OfferingAccessService($providerRepository)),
                 new UpdateOfferingService(new PdoOfferingRepository($pdo), new OfferingAccessService($providerRepository)),
+                new DeleteOfferingService(new PdoOfferingRepository($pdo), new OfferingAccessService($providerRepository), $openingRepository, $audit),
                 $idempotency
             ),
             new OrganizationController(

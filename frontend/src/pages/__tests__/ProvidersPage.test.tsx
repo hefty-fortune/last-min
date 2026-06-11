@@ -9,6 +9,7 @@ vi.mock('@/lib/api', () => ({
   listProviders: vi.fn(),
   listOrganizations: vi.fn(),
   createProvider: vi.fn(),
+  deleteProvider: vi.fn(),
 }));
 
 import { listProviders, listOrganizations } from '@/lib/api';

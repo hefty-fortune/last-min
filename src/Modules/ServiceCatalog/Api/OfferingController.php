@@ -8,6 +8,7 @@ use App\Common\Api\ApiResponse;
 use App\Common\Http\Request;
 use App\Common\Security\ActorContext;
 use App\Modules\ServiceCatalog\Application\Service\CreateOfferingService;
+use App\Modules\ServiceCatalog\Application\Service\DeleteOfferingService;
 use App\Modules\ServiceCatalog\Application\Service\ListOfferingsService;
 use App\Modules\ServiceCatalog\Application\Service\UpdateOfferingService;
 use App\Platform\Idempotency\IdempotencyExecutor;
@@ -19,8 +20,30 @@ final class OfferingController
         private CreateOfferingService $createService,
         private ListOfferingsService $listService,
         private UpdateOfferingService $updateService,
+        private DeleteOfferingService $deleteService,
         private IdempotencyExecutor $idempotency,
     ) {
+    }
+
+    #[OA\Delete(
+        path: '/providers/{provider_id}/offerings/{offering_id}',
+        summary: 'Delete a service offering (must have no openings)',
+        security: [['apiKey' => []]],
+        tags: ['ServiceCatalog'],
+        parameters: [
+            new OA\Parameter(name: 'provider_id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'offering_id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Offering deleted'),
+            new OA\Response(response: 409, description: 'Offering in use', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
+        ],
+    )]
+    public function delete(ActorContext $actor, string $providerId, string $offeringId): ApiResponse
+    {
+        $data = $this->deleteService->delete($actor, $providerId, $offeringId);
+
+        return ApiResponse::ok(['data' => $data, 'meta' => ['request_id' => uniqid('req_', true)]]);
     }
 
     #[OA\Post(

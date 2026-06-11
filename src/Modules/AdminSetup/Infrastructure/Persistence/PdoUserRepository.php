@@ -244,6 +244,13 @@ final class PdoUserRepository implements UserRepository
         return false;
     }
 
+    public function delete(string $userId): void
+    {
+        $this->pdo->prepare('DELETE FROM user_roles WHERE user_id = :id')->execute(['id' => $userId]);
+        $this->pdo->prepare('DELETE FROM auth_sessions WHERE user_id = :id')->execute(['id' => $userId]);
+        $this->pdo->prepare('DELETE FROM users WHERE id = :id')->execute(['id' => $userId]);
+    }
+
     private static function uuid(): string
     {
         $data = random_bytes(16);

@@ -32,6 +32,21 @@ final class GetProviderProfileService
         return self::mapProvider($provider);
     }
 
+    /** @return array<string, mixed> */
+    public function getMine(ActorContext $actor): array
+    {
+        if ($actor->userProfileId === null) {
+            throw new ApiException(401, new ApiError('AUTH_IDENTITY_NOT_LINKED', 'User profile linkage is required.'));
+        }
+
+        $provider = $this->providers->findByOwnerProfileId($actor->userProfileId);
+        if ($provider === null) {
+            throw new ApiException(404, new ApiError('PROVIDER_NOT_LINKED', 'No provider profile is linked to this account.'));
+        }
+
+        return self::mapProvider($provider);
+    }
+
     /** @param array<string, mixed> $row
      *  @return array<string, mixed>
      */

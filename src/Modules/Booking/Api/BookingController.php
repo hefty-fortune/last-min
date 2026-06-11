@@ -11,6 +11,7 @@ use App\Modules\Booking\Application\Dto\CreateBookingRequest;
 use App\Modules\Booking\Application\Service\CreateBookingService;
 use App\Modules\Booking\Application\Service\GetBookingService;
 use App\Modules\Booking\Application\Service\ListMyBookingsService;
+use App\Modules\Booking\Application\Service\ListProviderBookingsService;
 use App\Modules\Booking\Application\Service\MarkNoShowService;
 use App\Platform\Idempotency\IdempotencyExecutor;
 use OpenApi\Attributes as OA;
@@ -21,9 +22,34 @@ final class BookingController
         private CreateBookingService $service,
         private GetBookingService $getService,
         private ListMyBookingsService $listMineService,
+        private ListProviderBookingsService $listProviderService,
         private MarkNoShowService $noShowService,
         private IdempotencyExecutor $idempotency,
     ) {
+    }
+
+    #[OA\Get(
+        path: '/providers/{provider_id}/bookings',
+        summary: 'List bookings for a provider (owner or admin)',
+        security: [['apiKey' => []]],
+        tags: ['Bookings'],
+        parameters: [
+            new OA\Parameter(name: 'provider_id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'state', in: 'query', required: false, schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'limit', in: 'query', required: false, schema: new OA\Schema(type: 'integer', default: 50)),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Bookings for the provider'),
+            new OA\Response(response: 403, description: 'Forbidden', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
+        ],
+    )]
+    public function listForProvider(ActorContext $actor, Request $request, string $providerId): ApiResponse
+    {
+        $state = isset($request->attributes['query']['state']) ? (string) $request->attributes['query']['state'] : null;
+        $limit = isset($request->attributes['query']['limit']) ? (int) $request->attributes['query']['limit'] : 50;
+        $data = $this->listProviderService->listForProvider($actor, $providerId, $state, $limit);
+
+        return ApiResponse::ok(['data' => $data, 'meta' => ['request_id' => uniqid('req_', true)]]);
     }
 
     #[OA\Post(

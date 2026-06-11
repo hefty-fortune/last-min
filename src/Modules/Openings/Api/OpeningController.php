@@ -10,6 +10,7 @@ use App\Common\Security\ActorContext;
 use App\Modules\Openings\Application\Dto\CreateOpeningRequest;
 use App\Modules\Openings\Application\Service\CancelOpeningService;
 use App\Modules\Openings\Application\Service\CreateOpeningService;
+use App\Modules\Openings\Application\Service\DeleteOpeningService;
 use App\Modules\Openings\Application\Service\GetOpeningService;
 use App\Modules\Openings\Application\Service\ListOpeningsService;
 use App\Modules\Openings\Application\Service\PublishOpeningService;
@@ -24,8 +25,30 @@ final class OpeningController
         private ListOpeningsService $listService,
         private PublishOpeningService $publishService,
         private CancelOpeningService $cancelService,
+        private DeleteOpeningService $deleteService,
         private IdempotencyExecutor $idempotency,
     ) {
+    }
+
+    #[OA\Delete(
+        path: '/providers/{provider_id}/openings/{opening_id}',
+        summary: 'Delete an opening (draft/cancelled/expired only, no booking history)',
+        security: [['apiKey' => []]],
+        tags: ['Openings'],
+        parameters: [
+            new OA\Parameter(name: 'provider_id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'opening_id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Opening deleted'),
+            new OA\Response(response: 409, description: 'Opening live or has bookings', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
+        ],
+    )]
+    public function delete(ActorContext $actor, string $providerId, string $openingId): ApiResponse
+    {
+        $data = $this->deleteService->delete($actor, $providerId, $openingId);
+
+        return ApiResponse::ok(['data' => $data, 'meta' => ['request_id' => uniqid('req_', true)]]);
     }
 
     #[OA\Post(

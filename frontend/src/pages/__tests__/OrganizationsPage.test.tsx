@@ -8,6 +8,7 @@ import OrganizationsPage from '../OrganizationsPage';
 vi.mock('@/lib/api', () => ({
   listOrganizations: vi.fn(),
   createOrganization: vi.fn(),
+  deleteOrganization: vi.fn(),
 }));
 
 import { listOrganizations } from '@/lib/api';

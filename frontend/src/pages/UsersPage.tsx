@@ -5,8 +5,10 @@ import {
   listUsers,
   listProviders,
   createUser,
+  deleteUser,
   type CreateUserPayload,
 } from '@/lib/api';
+import { ConfirmDeleteDialog } from '@/components/ConfirmDeleteDialog';
 import {
   Button,
   Input,
@@ -62,6 +64,15 @@ export default function UsersPage() {
       setOpen(false);
       setForm({ first_name: '', last_name: '', email: '', phone: '', roles: [], provider_id: '' });
       toast.success('User created');
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteUser,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      toast.success('User deleted');
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -218,9 +229,17 @@ export default function UsersPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Link to={`/users/${u.user_id}`}>
-                        <Button size="sm" variant="ghost">View</Button>
-                      </Link>
+                      <div className="flex items-center gap-2">
+                        <Link to={`/users/${u.user_id}`}>
+                          <Button size="sm" variant="ghost">View</Button>
+                        </Link>
+                        <ConfirmDeleteDialog
+                          title="Delete user"
+                          description={`Delete user '${u.first_name} ${u.last_name}'? This cannot be undone.`}
+                          onConfirm={() => deleteMutation.mutate(u.user_id)}
+                          pending={deleteMutation.isPending}
+                        />
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

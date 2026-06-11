@@ -12,4 +12,8 @@ interface OrganizationRepository
     public function getById(string $organizationId): ?array;
     /** @return list<array<string, mixed>> */
     public function listAll(): array;
+
+    public function countProviders(string $organizationId): int;
+
+    public function delete(string $organizationId): void;
 }

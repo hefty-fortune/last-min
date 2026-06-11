@@ -12,4 +12,9 @@ interface AdminProviderRepository
     public function getById(string $providerId): ?array;
     /** @return list<array<string, mixed>> */
     public function listByOrganizationId(?string $organizationId): array;
+
+    /** @return array{users: int, openings: int} */
+    public function countDependents(string $providerId): array;
+
+    public function delete(string $providerId): void;
 }

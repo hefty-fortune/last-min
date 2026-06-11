@@ -4,8 +4,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   listOrganizations,
   createOrganization,
+  deleteOrganization,
   type CreateOrganizationPayload,
 } from '@/lib/api';
+import { ConfirmDeleteDialog } from '@/components/ConfirmDeleteDialog';
 import {
   Button,
   Input,
@@ -53,6 +55,15 @@ export default function OrganizationsPage() {
       setOpen(false);
       setForm(emptyForm);
       toast.success('Organization created');
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteOrganization,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['organizations'] });
+      toast.success('Organization deleted');
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -135,9 +146,17 @@ export default function OrganizationsPage() {
                     <TableCell>{org.contact_email}</TableCell>
                     <TableCell>{org.contact_phone}</TableCell>
                     <TableCell>
-                      <Link to={`/organizations/${org.organization_id}`}>
-                        <Button size="sm" variant="ghost">View</Button>
-                      </Link>
+                      <div className="flex items-center gap-2">
+                        <Link to={`/organizations/${org.organization_id}`}>
+                          <Button size="sm" variant="ghost">View</Button>
+                        </Link>
+                        <ConfirmDeleteDialog
+                          title="Delete organization"
+                          description={`Delete organization '${org.display_name}'? This cannot be undone.`}
+                          onConfirm={() => deleteMutation.mutate(org.organization_id)}
+                          pending={deleteMutation.isPending}
+                        />
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

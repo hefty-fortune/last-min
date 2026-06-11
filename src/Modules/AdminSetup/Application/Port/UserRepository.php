@@ -17,4 +17,6 @@ interface UserRepository
     /** @param list<string> $roles */
     public function replaceRoles(string $userId, array $roles): array;
     public function updatePasswordHash(string $userId, string $passwordHash): array;
+
+    public function delete(string $userId): void;
 }

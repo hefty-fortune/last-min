@@ -8,7 +8,9 @@ import {
   createOpening,
   publishOpening,
   cancelOpening,
+  deleteOpening,
 } from '@/lib/api';
+import { ConfirmDeleteDialog } from '@/components/ConfirmDeleteDialog';
 import {
   Button,
   Input,
@@ -116,6 +118,15 @@ export default function OpeningsPage() {
     onSuccess: () => {
       refresh();
       toast.success('Opening cancelled');
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (openingId: string) => deleteOpening(providerId, openingId),
+    onSuccess: () => {
+      refresh();
+      toast.success('Opening deleted');
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -284,6 +295,14 @@ export default function OpeningsPage() {
                         <Button size="sm" variant="outline" onClick={() => cancelMutation.mutate(o.opening_id)} disabled={cancelMutation.isPending}>
                           Cancel
                         </Button>
+                      )}
+                      {['draft', 'cancelled_by_provider', 'expired'].includes(o.status) && (
+                        <ConfirmDeleteDialog
+                          title="Delete opening"
+                          description="Delete this opening? This cannot be undone."
+                          onConfirm={() => deleteMutation.mutate(o.opening_id)}
+                          pending={deleteMutation.isPending}
+                        />
                       )}
                     </TableCell>
                   </TableRow>

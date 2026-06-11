@@ -31,4 +31,9 @@ interface BookingRepository
 
     /** @return list<string> */
     public function listExpiredReservedIds(string $nowIso, int $limit): array;
+
+    /** @return list<array<string, mixed>> */
+    public function listByProviderId(string $providerId, ?string $state, int $limit): array;
+
+    public function countByOpeningId(string $openingId): int;
 }

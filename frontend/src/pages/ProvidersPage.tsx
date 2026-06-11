@@ -5,8 +5,10 @@ import {
   listProviders,
   listOrganizations,
   createProvider,
+  deleteProvider,
   type CreateProviderPayload,
 } from '@/lib/api';
+import { ConfirmDeleteDialog } from '@/components/ConfirmDeleteDialog';
 import {
   Button,
   Input,
@@ -57,6 +59,15 @@ export default function ProvidersPage() {
       setOpen(false);
       setForm({ organization_id: '', display_name: '', status: 'active' });
       toast.success('Provider created');
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteProvider,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['providers'] });
+      toast.success('Provider deleted');
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -167,9 +178,17 @@ export default function ProvidersPage() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Link to={`/providers/${p.provider_id}`}>
-                        <Button size="sm" variant="ghost">View</Button>
-                      </Link>
+                      <div className="flex items-center gap-2">
+                        <Link to={`/providers/${p.provider_id}`}>
+                          <Button size="sm" variant="ghost">View</Button>
+                        </Link>
+                        <ConfirmDeleteDialog
+                          title="Delete provider"
+                          description={`Delete provider '${p.display_name}'? This cannot be undone.`}
+                          onConfirm={() => deleteMutation.mutate(p.provider_id)}
+                          pending={deleteMutation.isPending}
+                        />
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

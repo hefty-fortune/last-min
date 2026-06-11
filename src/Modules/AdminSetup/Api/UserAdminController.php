@@ -9,6 +9,7 @@ use App\Common\Http\Request;
 use App\Common\Security\ActorContext;
 use App\Modules\AdminSetup\Application\Dto\CreateUserRequest;
 use App\Modules\AdminSetup\Application\Service\CreateUserService;
+use App\Modules\AdminSetup\Application\Service\DeleteUserService;
 use App\Modules\AdminSetup\Application\Service\GetUserService;
 use App\Modules\AdminSetup\Application\Service\ListUsersService;
 use App\Modules\AdminSetup\Application\Service\ResetUserPasswordService;
@@ -25,7 +26,28 @@ final class UserAdminController
         private UpdateUserService $updateService,
         private UpdateUserRolesService $updateRolesService,
         private ResetUserPasswordService $resetPasswordService,
+        private DeleteUserService $deleteService,
     ) {
+    }
+
+    #[OA\Delete(
+        path: '/admin/users/{user_id}',
+        summary: 'Delete a user account (cannot delete yourself)',
+        security: [['apiKey' => []]],
+        tags: ['Admin - Users'],
+        parameters: [
+            new OA\Parameter(name: 'user_id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'User deleted'),
+            new OA\Response(response: 409, description: 'Cannot delete self', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
+        ],
+    )]
+    public function delete(ActorContext $actor, string $userId): ApiResponse
+    {
+        $data = $this->deleteService->delete($actor, $userId);
+
+        return ApiResponse::ok(['data' => $data, 'meta' => ['request_id' => uniqid('req_', true)]]);
     }
 
     #[OA\Post(

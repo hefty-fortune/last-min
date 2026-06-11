@@ -11,6 +11,7 @@ export default function MarketLayout() {
 
   const me = auth.status === 'authenticated' ? auth.me : null;
   const isAdmin = me?.roles.some((r) => r === 'admin' || r === 'super-admin') ?? false;
+  const isProvider = me?.roles.some((r) => r === 'provider') ?? false;
 
   const navLink = (to: string, label: string) => (
     <Link
@@ -34,6 +35,7 @@ export default function MarketLayout() {
             <nav className="flex items-center gap-1">
               {navLink('/market', 'Market')}
               {me && navLink('/my-bookings', 'My bookings')}
+              {isProvider && navLink('/provider', 'Provider area')}
               {isAdmin && navLink('/organizations', 'Admin dashboard')}
             </nav>
           </div>

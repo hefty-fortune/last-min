@@ -97,6 +97,20 @@ final class PdoOrganizationRepository implements OrganizationRepository
     }
 
     /** @param list<string> $needles */
+    public function countProviders(string $organizationId): int
+    {
+        $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM providers WHERE organization_id = :id');
+        $stmt->execute(['id' => $organizationId]);
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    public function delete(string $organizationId): void
+    {
+        $this->pdo->prepare('DELETE FROM organization_members WHERE organization_id = :id')->execute(['id' => $organizationId]);
+        $this->pdo->prepare('DELETE FROM organizations WHERE id = :id')->execute(['id' => $organizationId]);
+    }
+
     private function isUniqueViolation(PDOException $e, array $needles): bool
     {
         $sqlState = (string) ($e->errorInfo[0] ?? '');

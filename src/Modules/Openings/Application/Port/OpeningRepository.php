@@ -34,4 +34,10 @@ interface OpeningRepository
     public function cancel(string $openingId): array;
 
     public function updateStatus(string $openingId, string $status): void;
+
+    public function delete(string $openingId): void;
+
+    public function countByProviderId(string $providerId): int;
+
+    public function countByServiceOfferingId(string $serviceOfferingId): int;
 }

@@ -114,16 +114,40 @@ final class PdoBookingRepository implements BookingRepository
 
     public function listByClientProfileId(string $clientProfileId, ?string $state, int $limit): array
     {
+        return $this->listEnriched('b.client_user_profile_id = :scope', $clientProfileId, $state, $limit);
+    }
+
+    public function listByProviderId(string $providerId, ?string $state, int $limit): array
+    {
+        return $this->listEnriched('b.provider_id = :scope', $providerId, $state, $limit);
+    }
+
+    public function countByOpeningId(string $openingId): int
+    {
+        $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM bookings WHERE opening_id = :opening_id');
+        $stmt->execute(['opening_id' => $openingId]);
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function listEnriched(string $scopeCondition, string $scopeValue, ?string $state, int $limit): array
+    {
         $safeLimit = max(1, min($limit, 100));
-        $sql = 'SELECT * FROM bookings WHERE client_user_profile_id = :client_profile';
-        $params = ['client_profile' => $clientProfileId];
+        $sql = 'SELECT b.*, o.starts_at AS opening_starts_at, o.ends_at AS opening_ends_at, s.name AS offering_name, p.display_name AS provider_display_name
+                FROM bookings b
+                LEFT JOIN openings o ON o.id = b.opening_id
+                LEFT JOIN service_offerings s ON s.id = o.service_offering_id
+                LEFT JOIN providers p ON p.id = b.provider_id
+                WHERE ' . $scopeCondition;
+        $params = ['scope' => $scopeValue];
 
         if ($state !== null && trim($state) !== '') {
-            $sql .= ' AND state = :state';
+            $sql .= ' AND b.state = :state';
             $params['state'] = $state;
         }
 
-        $sql .= ' ORDER BY created_at DESC LIMIT :limit';
+        $sql .= ' ORDER BY b.created_at DESC LIMIT :limit';
         $stmt = $this->pdo->prepare($sql);
         foreach ($params as $key => $value) {
             $stmt->bindValue(':' . $key, $value);
@@ -133,7 +157,15 @@ final class PdoBookingRepository implements BookingRepository
 
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        return array_map(fn (array $row): array => $this->mapBooking($row), $rows);
+        return array_map(function (array $row): array {
+            $booking = $this->mapBooking($row);
+            $booking['opening_starts_at'] = $row['opening_starts_at'] ?? null;
+            $booking['opening_ends_at'] = $row['opening_ends_at'] ?? null;
+            $booking['offering_name'] = $row['offering_name'] ?? null;
+            $booking['provider_display_name'] = $row['provider_display_name'] ?? null;
+
+            return $booking;
+        }, $rows);
     }
 
     public function listExpiredReservedIds(string $nowIso, int $limit): array

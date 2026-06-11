@@ -84,6 +84,23 @@ final class ProviderController
         return ApiResponse::ok(['data' => $data, 'meta' => ['request_id' => uniqid('req_', true)]]);
     }
 
+    #[OA\Get(
+        path: '/me/provider',
+        summary: 'Get the provider profile linked to the authenticated account',
+        security: [['apiKey' => []]],
+        tags: ['Providers'],
+        responses: [
+            new OA\Response(response: 200, description: 'Linked provider profile'),
+            new OA\Response(response: 404, description: 'No provider linked', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
+        ],
+    )]
+    public function my(ActorContext $actor): ApiResponse
+    {
+        $data = $this->getService->getMine($actor);
+
+        return ApiResponse::ok(['data' => $data, 'meta' => ['request_id' => uniqid('req_', true)]]);
+    }
+
     #[OA\Patch(
         path: '/providers/{provider_id}',
         summary: 'Update provider profile (owner) or status (admin)',

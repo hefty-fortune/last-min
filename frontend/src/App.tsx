@@ -18,6 +18,7 @@ import BookingsPage from '@/pages/BookingsPage';
 import RefundsPage from '@/pages/RefundsPage';
 import MarketPage from '@/pages/MarketPage';
 import MyBookingsPage from '@/pages/MyBookingsPage';
+import ProviderPortalPage from '@/pages/ProviderPortalPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -38,6 +39,7 @@ export default function App() {
                   <Route index element={<Navigate to="/market" replace />} />
                   <Route path="/market" element={<MarketPage />} />
                   <Route path="/my-bookings" element={<MyBookingsPage />} />
+                  <Route path="/provider" element={<ProviderPortalPage />} />
                 </Route>
                 <Route element={<AppLayout />}>
                   <Route path="/organizations" element={<OrganizationsPage />} />

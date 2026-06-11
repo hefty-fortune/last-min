@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { listApiKeys, createApiKey, revokeApiKey, deleteApiKey, type ApiKeyCreated } from '@/lib/api';
+import { ConfirmDeleteDialog } from '@/components/ConfirmDeleteDialog';
 import {
   Button,
   Input,
@@ -101,7 +102,7 @@ export default function ApiKeysPage() {
         <Dialog open={!!created} onOpenChange={() => setCreated(null)}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>API Key Created</DialogTitle>
+              <DialogTitle>API key created</DialogTitle>
             </DialogHeader>
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">
@@ -121,7 +122,7 @@ export default function ApiKeysPage() {
                   toast.success('Copied to clipboard');
                 }}
               >
-                Copy Key
+                Copy key
               </Button>
             </div>
           </DialogContent>
@@ -194,14 +195,13 @@ export default function ApiKeysPage() {
                             Revoke
                           </Button>
                         )}
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={deleteMutation.isPending}
-                          onClick={() => deleteMutation.mutate(key.api_key_id)}
-                        >
-                          Delete
-                        </Button>
+                        <ConfirmDeleteDialog
+                          title="Delete API key"
+                          description={`Delete API key '${key.name}'? This cannot be undone.`}
+                          onConfirm={() => deleteMutation.mutate(key.api_key_id)}
+                          pending={deleteMutation.isPending}
+                          triggerVariant="outline"
+                        />
                       </span>
                     </TableCell>
                   </TableRow>

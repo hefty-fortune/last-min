@@ -91,6 +91,12 @@ export const deleteApiKey = (apiKeyId: string) =>
 export const listOrganizations = () =>
   request<{ data: Organization[]; meta: Meta }>('/admin/organizations');
 
+export const deleteOrganization = (id: string) =>
+  request<{ data: { organization_id: string; deleted: boolean }; meta: Meta }>(
+    `/admin/organizations/${id}`,
+    { method: 'DELETE' },
+  );
+
 export const getOrganization = (id: string) =>
   request<{ data: Organization; meta: Meta }>(`/admin/organizations/${id}`);
 
@@ -115,6 +121,12 @@ export const createProvider = (body: CreateProviderPayload) =>
     method: 'POST',
     body: JSON.stringify(body),
   });
+
+export const deleteProvider = (id: string) =>
+  request<{ data: { provider_id: string; deleted: boolean }; meta: Meta }>(
+    `/admin/providers/${id}`,
+    { method: 'DELETE' },
+  );
 
 // ── Admin: Users ──
 
@@ -144,6 +156,12 @@ export const updateUserRoles = (id: string, roles: string[]) =>
     body: JSON.stringify({ roles }),
   });
 
+export const deleteUser = (id: string) =>
+  request<{ data: { user_id: string; deleted: boolean }; meta: Meta }>(
+    `/admin/users/${id}`,
+    { method: 'DELETE' },
+  );
+
 export const resetUserPassword = (id: string, password: string) =>
   request<{ data: { user_id: string; password_reset: boolean }; meta: Meta }>(`/admin/users/${id}/reset-password`, {
     method: 'POST',
@@ -163,6 +181,12 @@ export const createOffering = (providerId: string, body: CreateOfferingPayload) 
     headers: idempotent(),
     body: JSON.stringify(body),
   });
+
+export const deleteOffering = (providerId: string, offeringId: string) =>
+  request<{ data: { offering_id: string; deleted: boolean }; meta: Meta }>(
+    `/providers/${providerId}/offerings/${offeringId}`,
+    { method: 'DELETE' },
+  );
 
 // ── Marketplace: Openings ──
 
@@ -191,6 +215,12 @@ export const cancelOpening = (providerId: string, openingId: string) =>
     headers: idempotent(),
     body: JSON.stringify({}),
   });
+
+export const deleteOpening = (providerId: string, openingId: string) =>
+  request<{ data: { opening_id: string; deleted: boolean }; meta: Meta }>(
+    `/providers/${providerId}/openings/${openingId}`,
+    { method: 'DELETE' },
+  );
 
 // ── Marketplace: Bookings ──
 
@@ -251,6 +281,23 @@ export const listMyBookings = (state?: string) =>
 
 export const getBooking = (bookingId: string) =>
   request<{ data: BookingDetail; meta: Meta }>(`/bookings/${bookingId}`);
+
+// ── Provider portal ──
+
+export const getMyProvider = () =>
+  request<{ data: Provider & { provider_type: string }; meta: Meta }>('/me/provider');
+
+export const linkProvider = () =>
+  request<{ data: Provider & { provider_type: string }; meta: Meta }>('/me/provider-link', {
+    method: 'POST',
+    headers: idempotent(),
+    body: JSON.stringify({ provider_type: 'individual' }),
+  });
+
+export const listProviderBookings = (providerId: string, state?: string) =>
+  request<{ data: ProviderBooking[]; meta: Meta }>(
+    `/providers/${providerId}/bookings${state ? `?state=${state}` : ''}`,
+  );
 
 // ── Marketplace: Refunds ──
 
@@ -438,7 +485,13 @@ export type MyBooking = {
   reserved_at: string;
   expires_at: string | null;
   created_at: string;
+  offering_name?: string | null;
+  provider_display_name?: string | null;
+  opening_starts_at?: string | null;
+  opening_ends_at?: string | null;
 };
+
+export type ProviderBooking = MyBooking;
 
 export type BookingDetail = MyBooking & {
   payment: { payment_id: string; state: string; amount: Money } | null;

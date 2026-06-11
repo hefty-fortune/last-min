@@ -87,6 +87,21 @@ final class PdoAdminProviderRepository implements AdminProviderRepository
         ], $rows);
     }
 
+    public function countDependents(string $providerId): array
+    {
+        $users = $this->pdo->prepare('SELECT COUNT(*) FROM users WHERE provider_id = :id');
+        $users->execute(['id' => $providerId]);
+        $openings = $this->pdo->prepare('SELECT COUNT(*) FROM openings WHERE provider_id = :id');
+        $openings->execute(['id' => $providerId]);
+
+        return ['users' => (int) $users->fetchColumn(), 'openings' => (int) $openings->fetchColumn()];
+    }
+
+    public function delete(string $providerId): void
+    {
+        $this->pdo->prepare('DELETE FROM providers WHERE id = :id')->execute(['id' => $providerId]);
+    }
+
     private static function uuid(): string
     {
         $data = random_bytes(16);

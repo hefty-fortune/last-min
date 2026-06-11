@@ -203,6 +203,27 @@ final class PdoOpeningRepository implements OpeningRepository
         return $this->mustFindById($openingId);
     }
 
+    public function delete(string $openingId): void
+    {
+        $this->pdo->prepare('DELETE FROM openings WHERE id = :id')->execute(['id' => $openingId]);
+    }
+
+    public function countByProviderId(string $providerId): int
+    {
+        $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM openings WHERE provider_id = :id');
+        $stmt->execute(['id' => $providerId]);
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    public function countByServiceOfferingId(string $serviceOfferingId): int
+    {
+        $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM openings WHERE service_offering_id = :id');
+        $stmt->execute(['id' => $serviceOfferingId]);
+
+        return (int) $stmt->fetchColumn();
+    }
+
     /** @param array<string, mixed> $row */
     private function mapOpening(array $row): array
     {

@@ -98,6 +98,11 @@ final class PdoOfferingRepository implements OfferingRepository
         return $this->mapOffering($row);
     }
 
+    public function delete(string $offeringId): void
+    {
+        $this->pdo->prepare('DELETE FROM service_offerings WHERE id = :id')->execute(['id' => $offeringId]);
+    }
+
     /** @param array<string, mixed> $row
      *  @return array<string, mixed>
      */

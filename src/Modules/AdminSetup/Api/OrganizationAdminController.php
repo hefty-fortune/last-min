@@ -9,6 +9,7 @@ use App\Common\Http\Request;
 use App\Common\Security\ActorContext;
 use App\Modules\AdminSetup\Application\Dto\CreateOrganizationRequest;
 use App\Modules\AdminSetup\Application\Service\CreateOrganizationService;
+use App\Modules\AdminSetup\Application\Service\DeleteOrganizationService;
 use App\Modules\AdminSetup\Application\Service\GetOrganizationService;
 use App\Modules\AdminSetup\Application\Service\ListOrganizationsService;
 use OpenApi\Attributes as OA;
@@ -19,7 +20,28 @@ final class OrganizationAdminController
         private CreateOrganizationService $service,
         private GetOrganizationService $getService,
         private ListOrganizationsService $listService,
+        private DeleteOrganizationService $deleteService,
     ) {
+    }
+
+    #[OA\Delete(
+        path: '/admin/organizations/{organization_id}',
+        summary: 'Delete an organization (must have no providers)',
+        security: [['apiKey' => []]],
+        tags: ['Admin - Organizations'],
+        parameters: [
+            new OA\Parameter(name: 'organization_id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Organization deleted'),
+            new OA\Response(response: 409, description: 'Organization in use', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
+        ],
+    )]
+    public function delete(ActorContext $actor, string $organizationId): ApiResponse
+    {
+        $data = $this->deleteService->delete($actor, $organizationId);
+
+        return ApiResponse::ok(['data' => $data, 'meta' => ['request_id' => uniqid('req_', true)]]);
     }
 
     #[OA\Post(

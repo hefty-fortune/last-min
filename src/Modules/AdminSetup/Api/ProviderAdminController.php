@@ -9,6 +9,7 @@ use App\Common\Http\Request;
 use App\Common\Security\ActorContext;
 use App\Modules\AdminSetup\Application\Dto\CreateProviderRequest;
 use App\Modules\AdminSetup\Application\Service\CreateProviderService;
+use App\Modules\AdminSetup\Application\Service\DeleteProviderService;
 use App\Modules\AdminSetup\Application\Service\GetProviderService;
 use App\Modules\AdminSetup\Application\Service\ListProvidersService;
 use OpenApi\Attributes as OA;
@@ -19,7 +20,28 @@ final class ProviderAdminController
         private CreateProviderService $service,
         private GetProviderService $getService,
         private ListProvidersService $listService,
+        private DeleteProviderService $deleteService,
     ) {
+    }
+
+    #[OA\Delete(
+        path: '/admin/providers/{provider_id}',
+        summary: 'Delete a provider (must have no users or openings)',
+        security: [['apiKey' => []]],
+        tags: ['Admin - Providers'],
+        parameters: [
+            new OA\Parameter(name: 'provider_id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Provider deleted'),
+            new OA\Response(response: 409, description: 'Provider in use', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
+        ],
+    )]
+    public function delete(ActorContext $actor, string $providerId): ApiResponse
+    {
+        $data = $this->deleteService->delete($actor, $providerId);
+
+        return ApiResponse::ok(['data' => $data, 'meta' => ['request_id' => uniqid('req_', true)]]);
     }
 
     #[OA\Post(

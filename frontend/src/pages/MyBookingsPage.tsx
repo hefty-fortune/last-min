@@ -83,6 +83,11 @@ function BookingCard({ booking, canSimulate }: { booking: MyBooking; canSimulate
       <CardContent className="py-4 flex flex-wrap items-center justify-between gap-3">
         <div className="space-y-1">
           <p className="font-mono text-xs text-muted-foreground">{booking.booking_id.slice(0, 8)}…</p>
+          <p className="font-medium">{booking.offering_name ?? 'Service'}</p>
+          <p className="text-sm text-muted-foreground">{booking.provider_display_name ?? '—'}</p>
+          {booking.opening_starts_at && (
+            <p className="text-sm">{new Date(booking.opening_starts_at).toLocaleString()}</p>
+          )}
           <p className="font-medium">
             {(booking.amount.amount_minor / 100).toFixed(2)} {booking.amount.currency}
           </p>

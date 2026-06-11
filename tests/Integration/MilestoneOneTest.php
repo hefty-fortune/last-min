@@ -18,6 +18,9 @@ use App\Modules\AdminSetup\Api\UserAdminController;
 use App\Modules\AdminSetup\Application\Service\CreateOrganizationService;
 use App\Modules\AdminSetup\Application\Service\CreateProviderService as CreateAdminProviderService;
 use App\Modules\AdminSetup\Application\Service\CreateUserService;
+use App\Modules\AdminSetup\Application\Service\DeleteOrganizationService;
+use App\Modules\AdminSetup\Application\Service\DeleteProviderService;
+use App\Modules\AdminSetup\Application\Service\DeleteUserService;
 use App\Modules\AdminSetup\Application\Service\GetOrganizationService;
 use App\Modules\AdminSetup\Application\Service\GetProviderService;
 use App\Modules\AdminSetup\Application\Service\GetUserService;
@@ -35,6 +38,7 @@ use App\Modules\Booking\Application\Service\CreateBookingService;
 use App\Modules\Booking\Application\Service\ExpireReservationsService;
 use App\Modules\Booking\Application\Service\GetBookingService;
 use App\Modules\Booking\Application\Service\ListMyBookingsService;
+use App\Modules\Booking\Application\Service\ListProviderBookingsService;
 use App\Modules\Booking\Application\Service\MarkNoShowService;
 use App\Modules\Booking\Infrastructure\Persistence\PdoBookingRepository;
 use App\Modules\IdentityAccess\Api\ApiKeyController;
@@ -46,12 +50,14 @@ use App\Modules\IdentityAccess\Application\Service\DeleteApiKeyService;
 use App\Modules\IdentityAccess\Application\Service\ListApiKeysService;
 use App\Modules\IdentityAccess\Application\Service\LoginService;
 use App\Modules\IdentityAccess\Infrastructure\Persistence\PdoApiKeyRepository;
+use App\Modules\IdentityAccess\Infrastructure\Persistence\PdoLoginAttemptRepository;
 use App\Modules\IdentityAccess\Infrastructure\Persistence\PdoAuthSessionRepository;
 use App\Modules\IdentityAccess\Infrastructure\Persistence\PdoUserAuthRepository;
 use App\Modules\IdentityAccess\Infrastructure\Security\ApiKeyBearerTokenActorResolver;
 use App\Modules\Openings\Api\OpeningController;
 use App\Modules\Openings\Application\Service\CancelOpeningService;
 use App\Modules\Openings\Application\Service\CreateOpeningService;
+use App\Modules\Openings\Application\Service\DeleteOpeningService;
 use App\Modules\Openings\Application\Service\GetOpeningService;
 use App\Modules\Openings\Application\Service\ListOpeningsService;
 use App\Modules\Openings\Application\Service\OpeningAccessService;
@@ -81,6 +87,7 @@ use App\Modules\Refunds\Application\Service\RequestRefundService;
 use App\Modules\Refunds\Infrastructure\Persistence\PdoRefundRepository;
 use App\Modules\ServiceCatalog\Api\OfferingController;
 use App\Modules\ServiceCatalog\Application\Service\CreateOfferingService;
+use App\Modules\ServiceCatalog\Application\Service\DeleteOfferingService;
 use App\Modules\ServiceCatalog\Application\Service\ListOfferingsService;
 use App\Modules\ServiceCatalog\Application\Service\OfferingAccessService;
 use App\Modules\ServiceCatalog\Application\Service\UpdateOfferingService;
@@ -132,12 +139,14 @@ final class MilestoneOneTest extends TestCase
             new OrganizationAdminController(
                 new CreateOrganizationService(new PdoOrganizationRepository($this->pdo)),
                 new GetOrganizationService(new PdoOrganizationRepository($this->pdo)),
-                new ListOrganizationsService(new PdoOrganizationRepository($this->pdo))
+                new ListOrganizationsService(new PdoOrganizationRepository($this->pdo)),
+                new DeleteOrganizationService(new PdoOrganizationRepository($this->pdo), new PdoAuditLogger($this->pdo))
             ),
             new ProviderAdminController(
                 new CreateAdminProviderService(new PdoOrganizationRepository($this->pdo), new PdoAdminProviderRepository($this->pdo)),
                 new GetProviderService(new PdoAdminProviderRepository($this->pdo)),
-                new ListProvidersService(new PdoAdminProviderRepository($this->pdo))
+                new ListProvidersService(new PdoAdminProviderRepository($this->pdo)),
+                new DeleteProviderService(new PdoAdminProviderRepository($this->pdo), new PdoAuditLogger($this->pdo))
             ),
             new UserAdminController(
                 new CreateUserService(new PdoAdminProviderRepository($this->pdo), new PdoUserRepository($this->pdo)),
@@ -145,10 +154,11 @@ final class MilestoneOneTest extends TestCase
                 new ListUsersService(new PdoUserRepository($this->pdo)),
                 new UpdateUserService(new PdoUserRepository($this->pdo)),
                 new UpdateUserRolesService(new PdoUserRepository($this->pdo)),
-                new ResetUserPasswordService(new PdoUserRepository($this->pdo))
+                new ResetUserPasswordService(new PdoUserRepository($this->pdo)),
+                new DeleteUserService(new PdoUserRepository($this->pdo), new PdoAuditLogger($this->pdo))
             ),
             new ApiKeyController(new CreateApiKeyService($apiKeys), new DeleteApiKeyService($apiKeys), new ListApiKeysService($apiKeys)),
-            new AuthController(new LoginService(new PdoUserAuthRepository($this->pdo), new PdoAuthSessionRepository($this->pdo))),
+            new AuthController(new LoginService(new PdoUserAuthRepository($this->pdo), new PdoAuthSessionRepository($this->pdo), new PdoLoginAttemptRepository($this->pdo))),
             new MeController(new GetMeQueryService()),
             new ProviderController(
                 new CreateProviderService($providerRepository),
@@ -163,12 +173,14 @@ final class MilestoneOneTest extends TestCase
                 new ListOpeningsService($openingRepository, $openingAccess),
                 new PublishOpeningService($tx, $openingRepository, $openingAccess),
                 new CancelOpeningService($tx, $openingRepository, $openingAccess),
+                new DeleteOpeningService($openingRepository, $openingAccess, new PdoBookingRepository($this->pdo), new PdoAuditLogger($this->pdo)),
                 $idempotency
             ),
             new BookingController(
                 new CreateBookingService($tx, $openingRepository, new PdoBookingRepository($this->pdo)),
                 new GetBookingService(new PdoBookingRepository($this->pdo), new PdoPaymentRepository($this->pdo), $providerRepository),
                 new ListMyBookingsService(new PdoBookingRepository($this->pdo)),
+                new ListProviderBookingsService(new PdoBookingRepository($this->pdo), $providerRepository),
                 new MarkNoShowService(
                     $tx,
                     new PdoBookingRepository($this->pdo),
@@ -194,6 +206,7 @@ final class MilestoneOneTest extends TestCase
                 new CreateOfferingService(new PdoOfferingRepository($this->pdo), new OfferingAccessService($providerRepository)),
                 new ListOfferingsService(new PdoOfferingRepository($this->pdo), new OfferingAccessService($providerRepository)),
                 new UpdateOfferingService(new PdoOfferingRepository($this->pdo), new OfferingAccessService($providerRepository)),
+                new DeleteOfferingService(new PdoOfferingRepository($this->pdo), new OfferingAccessService($providerRepository), $openingRepository, new PdoAuditLogger($this->pdo)),
                 $idempotency
             ),
             new OrganizationController(
@@ -1181,6 +1194,154 @@ final class MilestoneOneTest extends TestCase
         $refund = $this->pdo->query("SELECT state, failure_reason FROM refunds WHERE id = '$refundId'")->fetch(\PDO::FETCH_ASSOC);
         self::assertSame('failed', $refund['state']);
         self::assertStringContainsString('payment intent', (string) $refund['failure_reason']);
+    }
+
+    public function testDeleteWorkflowsForEntities(): void
+    {
+        // Organization with a provider cannot be deleted; an empty one can.
+        $orgHeaders = $this->actorHeaders(['admin']);
+        $org = $this->router->dispatch(new Request('POST', '/api/v1/admin/organizations', $orgHeaders, [
+            'legal_name' => 'Deletable d.o.o.', 'display_name' => 'Deletable', 'contact_email' => 'del@example.test', 'contact_phone' => '+385000',
+        ]));
+        $orgId = $org->body['data']['organization_id'];
+
+        $provider = $this->router->dispatch(new Request('POST', '/api/v1/admin/providers', $orgHeaders, [
+            'organization_id' => $orgId, 'display_name' => 'Del provider', 'status' => 'active',
+        ]));
+        $providerId = $provider->body['data']['provider_id'];
+
+        $blocked = $this->router->dispatch(new Request('DELETE', "/api/v1/admin/organizations/$orgId", $orgHeaders, []));
+        self::assertSame(409, $blocked->statusCode);
+        self::assertSame('CONFLICT_ORGANIZATION_IN_USE', $blocked->body['error']['code']);
+
+        $providerDeleted = $this->router->dispatch(new Request('DELETE', "/api/v1/admin/providers/$providerId", $orgHeaders, []));
+        self::assertSame(200, $providerDeleted->statusCode);
+
+        $orgDeleted = $this->router->dispatch(new Request('DELETE', "/api/v1/admin/organizations/$orgId", $orgHeaders, []));
+        self::assertSame(200, $orgDeleted->statusCode);
+        self::assertTrue($orgDeleted->body['data']['deleted']);
+
+        // Provider with openings is blocked.
+        $busyBlocked = $this->router->dispatch(new Request('DELETE', '/api/v1/admin/providers/provider-1', $orgHeaders, []));
+        self::assertSame(409, $busyBlocked->statusCode);
+        self::assertSame('CONFLICT_PROVIDER_IN_USE', $busyBlocked->body['error']['code']);
+
+        // Non-admin cannot delete.
+        $denied = $this->router->dispatch(new Request('DELETE', "/api/v1/admin/organizations/$orgId", $this->actorHeaders(['provider']), []));
+        self::assertSame(403, $denied->statusCode);
+    }
+
+    public function testDeleteUserAndSelfDeleteGuard(): void
+    {
+        $headers = $this->actorHeaders(['admin']);
+        $created = $this->router->dispatch(new Request('POST', '/api/v1/admin/users', $headers, [
+            'first_name' => 'To', 'last_name' => 'Delete', 'email' => 'todelete@example.test', 'phone' => '+385001',
+            'roles' => ['provider_staff'], 'provider_id' => 'provider-1',
+        ]));
+        $userId = $created->body['data']['user_id'];
+
+        $deleted = $this->router->dispatch(new Request('DELETE', "/api/v1/admin/users/$userId", $headers, []));
+        self::assertSame(200, $deleted->statusCode);
+
+        // actorHeaders uses X-Actor-Id 'actor-1'; deleting "yourself" is blocked.
+        $self = $this->router->dispatch(new Request('DELETE', '/api/v1/admin/users/actor-1', $headers, []));
+        self::assertSame(409, $self->statusCode);
+        self::assertSame('CONFLICT_CANNOT_DELETE_SELF', $self->body['error']['code']);
+    }
+
+    public function testDeleteOfferingAndOpeningGuards(): void
+    {
+        $providerHeaders = $this->actorHeaders(['provider']);
+
+        // offering-1 has openings -> blocked.
+        $blocked = $this->router->dispatch(new Request('DELETE', '/api/v1/providers/provider-1/offerings/offering-1', $providerHeaders, []));
+        self::assertSame(409, $blocked->statusCode);
+        self::assertSame('CONFLICT_OFFERING_IN_USE', $blocked->body['error']['code']);
+
+        // Published opening cannot be deleted...
+        $live = $this->router->dispatch(new Request('DELETE', '/api/v1/providers/provider-1/openings/opening-1', $providerHeaders, []));
+        self::assertSame(409, $live->statusCode);
+        self::assertSame('CONFLICT_OPENING_STATE_INVALID', $live->body['error']['code']);
+
+        // ...but a cancelled one without bookings can.
+        $cancelHeaders = $this->actorHeaders(['provider']);
+        $cancelHeaders['Idempotency-Key'] = 'idem-delete-cancel-1';
+        $this->router->dispatch(new Request('POST', '/api/v1/providers/provider-1/openings/opening-2:cancel', $cancelHeaders, []));
+        $deleted = $this->router->dispatch(new Request('DELETE', '/api/v1/providers/provider-1/openings/opening-2', $providerHeaders, []));
+        self::assertSame(200, $deleted->statusCode);
+
+        // Cancel and delete the remaining opening, then the offering is deletable.
+        $cancelHeaders['Idempotency-Key'] = 'idem-delete-cancel-2';
+        $this->router->dispatch(new Request('POST', '/api/v1/providers/provider-1/openings/opening-1:cancel', $cancelHeaders, []));
+        $this->router->dispatch(new Request('DELETE', '/api/v1/providers/provider-1/openings/opening-1', $providerHeaders, []));
+
+        $offeringDeleted = $this->router->dispatch(new Request('DELETE', '/api/v1/providers/provider-1/offerings/offering-1', $providerHeaders, []));
+        self::assertSame(200, $offeringDeleted->statusCode);
+        self::assertTrue($offeringDeleted->body['data']['deleted']);
+    }
+
+    public function testMyProviderAndProviderBookings(): void
+    {
+        // actor profile-client-1 owns provider-1 in fixtures.
+        $mine = $this->router->dispatch(new Request('GET', '/api/v1/me/provider', $this->actorHeaders(['provider']), []));
+        self::assertSame(200, $mine->statusCode);
+        self::assertSame('provider-1', $mine->body['data']['provider_id']);
+
+        // An actor without a linked provider gets 404 PROVIDER_NOT_LINKED.
+        $unlinked = $this->router->dispatch(new Request('GET', '/api/v1/me/provider', [
+            'X-Actor-Id' => 'actor-9', 'X-Actor-Subject' => 'sso|user_9', 'X-Actor-Roles' => 'provider', 'X-User-Profile-Id' => 'profile-unlinked',
+        ], []));
+        self::assertSame(404, $unlinked->statusCode);
+        self::assertSame('PROVIDER_NOT_LINKED', $unlinked->body['error']['code']);
+
+        // Provider bookings list with enrichment.
+        $bookHeaders = $this->actorHeaders(['client']);
+        $bookHeaders['Idempotency-Key'] = 'idem-provider-bookings-1';
+        $this->router->dispatch(new Request('POST', '/api/v1/bookings', $bookHeaders, ['opening_id' => 'opening-1']));
+
+        $list = $this->router->dispatch(new Request('GET', '/api/v1/providers/provider-1/bookings', $this->actorHeaders(['provider']), []));
+        self::assertSame(200, $list->statusCode);
+        self::assertCount(1, $list->body['data']);
+        self::assertSame('Haircut', $list->body['data'][0]['offering_name']);
+        self::assertNotNull($list->body['data'][0]['opening_starts_at']);
+
+        // Unrelated provider is denied.
+        $denied = $this->router->dispatch(new Request('GET', '/api/v1/providers/provider-1/bookings', [
+            'X-Actor-Id' => 'actor-2', 'X-Actor-Subject' => 'sso|user_2', 'X-Actor-Roles' => 'provider', 'X-User-Profile-Id' => 'profile-client-2',
+        ], []));
+        self::assertSame(403, $denied->statusCode);
+    }
+
+    public function testMyBookingsAreEnriched(): void
+    {
+        $headers = $this->actorHeaders(['client']);
+        $headers['Idempotency-Key'] = 'idem-enriched-1';
+        $this->router->dispatch(new Request('POST', '/api/v1/bookings', $headers, ['opening_id' => 'opening-1']));
+
+        $list = $this->router->dispatch(new Request('GET', '/api/v1/me/bookings', $this->actorHeaders(['client']), []));
+        self::assertSame(200, $list->statusCode);
+        self::assertSame('Haircut', $list->body['data'][0]['offering_name']);
+        self::assertNotNull($list->body['data'][0]['opening_starts_at']);
+    }
+
+    public function testLoginRateLimiting(): void
+    {
+        $hash = password_hash('correct-password', PASSWORD_DEFAULT);
+        $this->pdo->exec("INSERT INTO users (id, provider_id, first_name, last_name, email, phone, status, password_hash, created_at, updated_at) VALUES ('user-rl-1', 'provider-1', 'Rate', 'Limited', 'rl@example.test', '+385002', 'active', '$hash', '2026-03-26T10:00:00+00:00', '2026-03-26T10:00:00+00:00')");
+
+        for ($i = 0; $i < 5; $i++) {
+            $attempt = $this->router->dispatch(new Request('POST', '/api/v1/auth/login', [], ['email' => 'rl@example.test', 'password' => 'wrong']));
+            self::assertSame(401, $attempt->statusCode);
+        }
+
+        // Sixth attempt is rate limited even with the CORRECT password.
+        $limited = $this->router->dispatch(new Request('POST', '/api/v1/auth/login', [], ['email' => 'rl@example.test', 'password' => 'correct-password']));
+        self::assertSame(429, $limited->statusCode);
+        self::assertSame('AUTH_RATE_LIMITED', $limited->body['error']['code']);
+
+        // Other accounts are unaffected by this account's failures.
+        $other = $this->router->dispatch(new Request('POST', '/api/v1/auth/login', [], ['email' => 'other@example.test', 'password' => 'whatever']));
+        self::assertSame(401, $other->statusCode);
     }
 
     public function testClientCanListOwnBookings(): void

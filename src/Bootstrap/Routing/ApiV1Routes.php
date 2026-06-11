@@ -73,6 +73,11 @@ final class ApiV1Routes
             return $adminOrganizations->get($actor, $params['organization_id']);
         });
 
+        $router->add('DELETE', '/api/v1/admin/organizations/{organization_id}', function (Request $request, array $params) use ($adminOrganizations) {
+            $actor = $this->resolver->resolve($request->headers);
+            return $adminOrganizations->delete($actor, $params['organization_id']);
+        });
+
         $router->add('POST', '/api/v1/admin/providers', function (Request $request) use ($adminProviders) {
             $actor = $this->resolver->resolve($request->headers);
             return $adminProviders->create($actor, $request);
@@ -86,6 +91,11 @@ final class ApiV1Routes
         $router->add('GET', '/api/v1/admin/providers/{provider_id}', function (Request $request, array $params) use ($adminProviders) {
             $actor = $this->resolver->resolve($request->headers);
             return $adminProviders->get($actor, $params['provider_id']);
+        });
+
+        $router->add('DELETE', '/api/v1/admin/providers/{provider_id}', function (Request $request, array $params) use ($adminProviders) {
+            $actor = $this->resolver->resolve($request->headers);
+            return $adminProviders->delete($actor, $params['provider_id']);
         });
 
         $router->add('POST', '/api/v1/admin/users', function (Request $request) use ($adminUsers) {
@@ -116,6 +126,11 @@ final class ApiV1Routes
         $router->add('POST', '/api/v1/admin/users/{user_id}/reset-password', function (Request $request, array $params) use ($adminUsers) {
             $actor = $this->resolver->resolve($request->headers);
             return $adminUsers->resetPassword($actor, $request, $params['user_id']);
+        });
+
+        $router->add('DELETE', '/api/v1/admin/users/{user_id}', function (Request $request, array $params) use ($adminUsers) {
+            $actor = $this->resolver->resolve($request->headers);
+            return $adminUsers->delete($actor, $params['user_id']);
         });
 
         $router->add('POST', '/api/v1/api-key', function (Request $request) use ($apiKeys) {
@@ -158,6 +173,11 @@ final class ApiV1Routes
             return $providers->update($actor, $request, $params['provider_id']);
         });
 
+        $router->add('GET', '/api/v1/me/provider', function (Request $request) use ($providers) {
+            $actor = $this->resolver->resolve($request->headers);
+            return $providers->my($actor);
+        });
+
         $router->add('POST', '/api/v1/me/provider-link', function (Request $request) use ($providers) {
             $actor = $this->resolver->resolve($request->headers);
             return $providers->link($actor, $request);
@@ -191,6 +211,21 @@ final class ApiV1Routes
         $router->add('PATCH', '/api/v1/providers/{provider_id}/offerings/{offering_id}', function (Request $request, array $params) use ($offerings) {
             $actor = $this->resolver->resolve($request->headers);
             return $offerings->update($actor, $request, $params['provider_id'], $params['offering_id']);
+        });
+
+        $router->add('DELETE', '/api/v1/providers/{provider_id}/offerings/{offering_id}', function (Request $request, array $params) use ($offerings) {
+            $actor = $this->resolver->resolve($request->headers);
+            return $offerings->delete($actor, $params['provider_id'], $params['offering_id']);
+        });
+
+        $router->add('DELETE', '/api/v1/providers/{provider_id}/openings/{opening_id}', function (Request $request, array $params) use ($openings) {
+            $actor = $this->resolver->resolve($request->headers);
+            return $openings->delete($actor, $params['provider_id'], $params['opening_id']);
+        });
+
+        $router->add('GET', '/api/v1/providers/{provider_id}/bookings', function (Request $request, array $params) use ($bookings) {
+            $actor = $this->resolver->resolve($request->headers);
+            return $bookings->listForProvider($actor, $request, $params['provider_id']);
         });
 
         $router->add('GET', '/api/v1/public/providers/{provider_id}/offerings', function (Request $request, array $params) use ($offerings) {

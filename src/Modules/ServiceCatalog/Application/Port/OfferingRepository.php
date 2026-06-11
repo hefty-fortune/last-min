@@ -21,4 +21,6 @@ interface OfferingRepository
      *  @return array<string, mixed>
      */
     public function update(string $offeringId, array $changes): array;
+
+    public function delete(string $offeringId): void;
 }
