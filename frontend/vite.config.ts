@@ -15,6 +15,8 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     host: true,
+    // Windows bind mounts don't emit file events into the container; poll instead.
+    watch: { usePolling: true, interval: 300 },
     proxy: {
       '/api': process.env.API_URL || 'http://localhost:8080',
     },
