@@ -12,6 +12,9 @@ import ProviderDetailPage from '@/pages/ProviderDetailPage';
 import UsersPage from '@/pages/UsersPage';
 import UserDetailPage from '@/pages/UserDetailPage';
 import ApiKeysPage from '@/pages/ApiKeysPage';
+import OpeningsPage from '@/pages/OpeningsPage';
+import BookingsPage from '@/pages/BookingsPage';
+import RefundsPage from '@/pages/RefundsPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -37,6 +40,9 @@ export default function App() {
                   <Route path="/users" element={<UsersPage />} />
                   <Route path="/users/:id" element={<UserDetailPage />} />
                   <Route path="/api-keys" element={<ApiKeysPage />} />
+                  <Route path="/openings" element={<OpeningsPage />} />
+                  <Route path="/bookings" element={<BookingsPage />} />
+                  <Route path="/refunds" element={<RefundsPage />} />
                 </Route>
               </Routes>
             </BrowserRouter>

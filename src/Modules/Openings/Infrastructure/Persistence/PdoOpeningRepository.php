@@ -21,6 +21,15 @@ final class PdoOpeningRepository implements OpeningRepository
         return $stmt->fetchColumn() !== false;
     }
 
+    public function getServiceOfferingPrice(string $serviceOfferingId, string $providerId): ?array
+    {
+        $stmt = $this->pdo->prepare('SELECT price_amount, price_currency FROM service_offerings WHERE id = :id AND provider_id = :provider_id LIMIT 1');
+        $stmt->execute(['id' => $serviceOfferingId, 'provider_id' => $providerId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row === false ? null : ['amount_minor' => (int) $row['price_amount'], 'currency' => (string) $row['price_currency']];
+    }
+
     public function createDraft(array $data): array
     {
         $id = self::uuid();

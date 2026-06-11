@@ -64,6 +64,7 @@ use App\Modules\Organizations\Infrastructure\Persistence\PdoOrganizationMemberRe
 use App\Modules\Payments\Api\PaymentController;
 use App\Modules\Payments\Application\Service\GetPaymentService;
 use App\Modules\Payments\Application\Service\InitiatePaymentService;
+use App\Modules\Payments\Application\Service\SettlePaymentOutcomeService;
 use App\Modules\Payments\Infrastructure\Persistence\PdoPaymentRepository;
 use App\Modules\Providers\Api\ProviderController;
 use App\Modules\Providers\Application\Service\CreateProviderService;
@@ -179,6 +180,7 @@ final class MilestoneOneTest extends TestCase
             new PaymentController(
                 new InitiatePaymentService(new PdoBookingRepository($this->pdo), new PdoPaymentRepository($this->pdo), new StubStripeGateway()),
                 new GetPaymentService(new PdoPaymentRepository($this->pdo), $providerRepository),
+                $settlement = new SettlePaymentOutcomeService($tx, new PdoPaymentRepository($this->pdo), new PdoBookingRepository($this->pdo), $openingRepository),
                 $idempotency
             ),
             new RefundController(
@@ -203,7 +205,7 @@ final class MilestoneOneTest extends TestCase
                 new ForceExpireOpeningService($tx, $openingRepository, new PdoAuditLogger($this->pdo)),
                 $idempotency
             ),
-            new StripeWebhookController(new StripeSignatureVerifier('test_webhook_secret'), new PdoStripeWebhookEventRepository($this->pdo), new StripeWebhookDispatcher()),
+            new StripeWebhookController(new StripeSignatureVerifier('test_webhook_secret'), new PdoStripeWebhookEventRepository($this->pdo), new StripeWebhookDispatcher($settlement)),
         );
     }
 
@@ -968,6 +970,111 @@ final class MilestoneOneTest extends TestCase
 
         $outbox = $this->pdo->query("SELECT * FROM outbox_messages WHERE message_type = 'refund.approved'")->fetchAll(\PDO::FETCH_ASSOC);
         self::assertCount(1, $outbox);
+    }
+
+    public function testSimulatedPaymentSuccessConfirmsBooking(): void
+    {
+        $headers = $this->actorHeaders(['client']);
+        $headers['Idempotency-Key'] = 'idem-settle-1';
+        $created = $this->router->dispatch(new Request('POST', '/api/v1/bookings', $headers, ['opening_id' => 'opening-1']));
+        $bookingId = $created->body['data']['booking_id'];
+
+        $payHeaders = $this->actorHeaders(['client']);
+        $payHeaders['Idempotency-Key'] = 'idem-settle-pay-1';
+        $payment = $this->router->dispatch(new Request('POST', "/api/v1/bookings/$bookingId/payments/initiate", $payHeaders, ['payment_method_type' => 'card']));
+        $paymentId = $payment->body['data']['payment_id'];
+
+        $settled = $this->router->dispatch(new Request('POST', "/api/v1/payments/$paymentId:simulate-succeed", $this->actorHeaders(['admin']), []));
+        self::assertSame(200, $settled->statusCode);
+        self::assertSame('captured', $settled->body['data']['state']);
+        self::assertSame('confirmed', $settled->body['data']['booking']['state']);
+        self::assertNotNull($settled->body['data']['booking']['confirmed_at']);
+
+        $opening = $this->pdo->query("SELECT status FROM openings WHERE id = 'opening-1'")->fetchColumn();
+        self::assertSame('booked', $opening);
+
+        $again = $this->router->dispatch(new Request('POST', "/api/v1/payments/$paymentId:simulate-succeed", $this->actorHeaders(['admin']), []));
+        self::assertSame(409, $again->statusCode);
+        self::assertSame('PAYMENT_STATE_INVALID', $again->body['error']['code']);
+
+        $denied = $this->router->dispatch(new Request('POST', "/api/v1/payments/$paymentId:simulate-succeed", $this->actorHeaders(['client']), []));
+        self::assertSame(403, $denied->statusCode);
+    }
+
+    public function testSimulatedPaymentFailureReleasesOpening(): void
+    {
+        $headers = $this->actorHeaders(['client']);
+        $headers['Idempotency-Key'] = 'idem-settle-2';
+        $created = $this->router->dispatch(new Request('POST', '/api/v1/bookings', $headers, ['opening_id' => 'opening-2']));
+        $bookingId = $created->body['data']['booking_id'];
+
+        $payHeaders = $this->actorHeaders(['client']);
+        $payHeaders['Idempotency-Key'] = 'idem-settle-pay-2';
+        $payment = $this->router->dispatch(new Request('POST', "/api/v1/bookings/$bookingId/payments/initiate", $payHeaders, ['payment_method_type' => 'card']));
+        $paymentId = $payment->body['data']['payment_id'];
+
+        $settled = $this->router->dispatch(new Request('POST', "/api/v1/payments/$paymentId:simulate-fail", $this->actorHeaders(['admin']), ['reason' => 'card_declined']));
+        self::assertSame(200, $settled->statusCode);
+        self::assertSame('failed', $settled->body['data']['state']);
+        self::assertSame('payment_failed', $settled->body['data']['booking']['state']);
+
+        $opening = $this->pdo->query("SELECT status FROM openings WHERE id = 'opening-2'")->fetchColumn();
+        self::assertSame('published', $opening);
+    }
+
+    public function testFullMoneyFlowBookPayConfirmNoShowRefund(): void
+    {
+        // book -> pay -> simulate success -> provider no-show -> refund requested -> admin approves
+        $headers = $this->actorHeaders(['client']);
+        $headers['Idempotency-Key'] = 'idem-e2e-1';
+        $created = $this->router->dispatch(new Request('POST', '/api/v1/bookings', $headers, ['opening_id' => 'opening-1']));
+        $bookingId = $created->body['data']['booking_id'];
+
+        $payHeaders = $this->actorHeaders(['client']);
+        $payHeaders['Idempotency-Key'] = 'idem-e2e-pay-1';
+        $payment = $this->router->dispatch(new Request('POST', "/api/v1/bookings/$bookingId/payments/initiate", $payHeaders, ['payment_method_type' => 'card']));
+        $paymentId = $payment->body['data']['payment_id'];
+
+        $this->router->dispatch(new Request('POST', "/api/v1/payments/$paymentId:simulate-succeed", $this->actorHeaders(['admin']), []));
+
+        $noShowHeaders = $this->actorHeaders(['provider']);
+        $noShowHeaders['Idempotency-Key'] = 'idem-e2e-noshow-1';
+        $marked = $this->router->dispatch(new Request('POST', "/api/v1/bookings/$bookingId:mark-provider-no-show", $noShowHeaders, []));
+        self::assertSame(200, $marked->statusCode);
+        self::assertSame('provider_no_show', $marked->body['data']['state']);
+
+        $refunds = $this->router->dispatch(new Request('GET', "/api/v1/bookings/$bookingId/refunds", $this->actorHeaders(['admin']), []));
+        self::assertCount(1, $refunds->body['data']);
+        $refundId = $refunds->body['data'][0]['refund_id'];
+        self::assertSame('requested', $refunds->body['data'][0]['state']);
+
+        $approveHeaders = $this->actorHeaders(['admin']);
+        $approveHeaders['Idempotency-Key'] = 'idem-e2e-approve-1';
+        $approved = $this->router->dispatch(new Request('POST', "/api/v1/refunds/$refundId:approve", $approveHeaders, ['note' => 'e2e']));
+        self::assertSame(200, $approved->statusCode);
+        self::assertSame('pending', $approved->body['data']['state']);
+    }
+
+    public function testStripeWebhookSettlesPayment(): void
+    {
+        $headers = $this->actorHeaders(['client']);
+        $headers['Idempotency-Key'] = 'idem-webhook-settle-1';
+        $created = $this->router->dispatch(new Request('POST', '/api/v1/bookings', $headers, ['opening_id' => 'opening-1']));
+        $bookingId = $created->body['data']['booking_id'];
+
+        $payHeaders = $this->actorHeaders(['client']);
+        $payHeaders['Idempotency-Key'] = 'idem-webhook-settle-pay-1';
+        $payment = $this->router->dispatch(new Request('POST', "/api/v1/bookings/$bookingId/payments/initiate", $payHeaders, ['payment_method_type' => 'card']));
+        $intentId = $payment->body['data']['stripe']['payment_intent_id'];
+
+        $payload = json_encode(['id' => 'evt_settle_1', 'type' => 'payment_intent.succeeded', 'data' => ['object' => ['id' => $intentId]]], JSON_THROW_ON_ERROR);
+        $signature = hash_hmac('sha256', $payload, 'test_webhook_secret');
+        $response = $this->router->dispatch(new Request('POST', '/api/v1/webhooks/stripe', ['Stripe-Signature' => $signature], json_decode($payload, true), [], $payload));
+        self::assertSame(200, $response->statusCode);
+
+        $booking = $this->router->dispatch(new Request('GET', "/api/v1/bookings/$bookingId", $this->actorHeaders(['client']), []));
+        self::assertSame('confirmed', $booking->body['data']['state']);
+        self::assertSame('captured', $booking->body['data']['payment']['state']);
     }
 
     public function testClientCanListOwnBookings(): void

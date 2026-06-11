@@ -24,6 +24,12 @@ const adminNav = [
   { label: 'API Keys', path: '/api-keys' },
 ];
 
+const marketplaceNav = [
+  { label: 'Openings', path: '/openings' },
+  { label: 'Bookings', path: '/bookings' },
+  { label: 'Refunds', path: '/refunds' },
+];
+
 export function AppSidebar() {
   const { pathname } = useLocation();
   const { theme, setTheme } = useTheme();
@@ -56,6 +62,20 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {adminNav.map((item) => (
+                <SidebarMenuItem key={item.path}>
+                  <SidebarMenuButton isActive={pathname === item.path} render={<Link to={item.path} />}>
+                    {item.label}
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        <SidebarGroup>
+          <SidebarGroupLabel>Marketplace</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {marketplaceNav.map((item) => (
                 <SidebarMenuItem key={item.path}>
                   <SidebarMenuButton isActive={pathname === item.path} render={<Link to={item.path} />}>
                     {item.label}

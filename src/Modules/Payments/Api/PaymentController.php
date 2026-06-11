@@ -7,8 +7,11 @@ namespace App\Modules\Payments\Api;
 use App\Common\Api\ApiResponse;
 use App\Common\Http\Request;
 use App\Common\Security\ActorContext;
+use App\Common\Api\ApiError;
+use App\Common\Api\ApiException;
 use App\Modules\Payments\Application\Service\GetPaymentService;
 use App\Modules\Payments\Application\Service\InitiatePaymentService;
+use App\Modules\Payments\Application\Service\SettlePaymentOutcomeService;
 use App\Platform\Idempotency\IdempotencyExecutor;
 use OpenApi\Attributes as OA;
 
@@ -17,6 +20,7 @@ final class PaymentController
     public function __construct(
         private InitiatePaymentService $service,
         private GetPaymentService $getService,
+        private SettlePaymentOutcomeService $settlement,
         private IdempotencyExecutor $idempotency,
     ) {
     }
@@ -103,5 +107,55 @@ final class PaymentController
         $data = $this->getService->getById($actor, $paymentId, $bookingId);
 
         return ApiResponse::ok(['data' => $data, 'meta' => ['request_id' => uniqid('req_', true)]]);
+    }
+
+    #[OA\Post(
+        path: '/payments/{payment_id}:simulate-succeed',
+        summary: 'DEV ONLY: simulate a successful gateway outcome (same path as the Stripe webhook)',
+        security: [['apiKey' => []]],
+        tags: ['Payments'],
+        parameters: [
+            new OA\Parameter(name: 'payment_id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Payment captured, booking confirmed'),
+            new OA\Response(response: 409, description: 'Already settled', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
+        ],
+    )]
+    public function simulateSucceed(ActorContext $actor, string $paymentId): ApiResponse
+    {
+        $this->assertAdmin($actor);
+        $data = $this->settlement->succeed($paymentId);
+
+        return ApiResponse::ok(['data' => $data, 'meta' => ['request_id' => uniqid('req_', true)]]);
+    }
+
+    #[OA\Post(
+        path: '/payments/{payment_id}:simulate-fail',
+        summary: 'DEV ONLY: simulate a failed gateway outcome (same path as the Stripe webhook)',
+        security: [['apiKey' => []]],
+        tags: ['Payments'],
+        parameters: [
+            new OA\Parameter(name: 'payment_id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Payment failed, booking released'),
+            new OA\Response(response: 409, description: 'Already settled', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
+        ],
+    )]
+    public function simulateFail(ActorContext $actor, Request $request, string $paymentId): ApiResponse
+    {
+        $this->assertAdmin($actor);
+        $reason = isset($request->body['reason']) ? (string) $request->body['reason'] : 'simulated_failure';
+        $data = $this->settlement->fail($paymentId, $reason);
+
+        return ApiResponse::ok(['data' => $data, 'meta' => ['request_id' => uniqid('req_', true)]]);
+    }
+
+    private function assertAdmin(ActorContext $actor): void
+    {
+        if (!$actor->hasRole('admin') && !$actor->hasRole('super-admin')) {
+            throw new ApiException(403, new ApiError('FORBIDDEN_ROLE_MISSING', 'Admin role is required.'));
+        }
     }
 }

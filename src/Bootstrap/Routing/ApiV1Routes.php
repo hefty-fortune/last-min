@@ -266,6 +266,16 @@ final class ApiV1Routes
             return $payments->getForBooking($actor, $params['booking_id'], $params['payment_id']);
         });
 
+        $router->add('POST', '/api/v1/payments/{payment_id}:simulate-succeed', function (Request $request, array $params) use ($payments) {
+            $actor = $this->resolver->resolve($request->headers);
+            return $payments->simulateSucceed($actor, $params['payment_id']);
+        });
+
+        $router->add('POST', '/api/v1/payments/{payment_id}:simulate-fail', function (Request $request, array $params) use ($payments) {
+            $actor = $this->resolver->resolve($request->headers);
+            return $payments->simulateFail($actor, $request, $params['payment_id']);
+        });
+
         $router->add('GET', '/api/v1/bookings/{booking_id}/refunds', function (Request $request, array $params) use ($refunds) {
             $actor = $this->resolver->resolve($request->headers);
             return $refunds->listForBooking($actor, $params['booking_id']);

@@ -94,6 +94,24 @@ final class PdoBookingRepository implements BookingRepository
         return $detail;
     }
 
+    public function markConfirmed(string $bookingId): array
+    {
+        $now = (new \DateTimeImmutable())->format(DATE_ATOM);
+        $stmt = $this->pdo->prepare("UPDATE bookings SET state = 'confirmed', confirmed_at = :confirmed_at, updated_at = :updated_at WHERE id = :id");
+        $stmt->execute(['id' => $bookingId, 'confirmed_at' => $now, 'updated_at' => $now]);
+
+        $detail = $this->findDetailById($bookingId);
+        assert($detail !== null);
+
+        return $detail;
+    }
+
+    public function updateState(string $bookingId, string $state): void
+    {
+        $stmt = $this->pdo->prepare('UPDATE bookings SET state = :state, updated_at = :updated_at WHERE id = :id');
+        $stmt->execute(['id' => $bookingId, 'state' => $state, 'updated_at' => (new \DateTimeImmutable())->format(DATE_ATOM)]);
+    }
+
     public function listByClientProfileId(string $clientProfileId, ?string $state, int $limit): array
     {
         $safeLimit = max(1, min($limit, 100));

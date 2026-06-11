@@ -161,6 +161,79 @@ exports[`AppSidebar > renders sidebar with multiple roles 1`] = `
                 </ul>
               </div>
             </div>
+            <div
+              class="relative flex w-full min-w-0 flex-col p-2"
+              data-sidebar="group"
+              data-slot="sidebar-group"
+            >
+              <div
+                class="flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-medium text-sidebar-foreground/70 ring-sidebar-ring outline-hidden transition-[margin,opacity] duration-200 ease-linear group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0 focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0"
+                data-sidebar="group-label"
+                data-slot="sidebar-group-label"
+              >
+                Marketplace
+              </div>
+              <div
+                class="w-full text-sm"
+                data-sidebar="group-content"
+                data-slot="sidebar-group-content"
+              >
+                <ul
+                  class="flex w-full min-w-0 flex-col gap-0"
+                  data-sidebar="menu"
+                  data-slot="sidebar-menu"
+                >
+                  <li
+                    class="group/menu-item relative"
+                    data-sidebar="menu-item"
+                    data-slot="sidebar-menu-item"
+                  >
+                    <a
+                      class="peer/menu-button group/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-open:hover:bg-sidebar-accent data-open:hover:text-sidebar-accent-foreground data-active:bg-sidebar-accent data-active:font-medium data-active:text-sidebar-accent-foreground [&_svg]:size-4 [&_svg]:shrink-0 [&>span:last-child]:truncate hover:bg-sidebar-accent hover:text-sidebar-accent-foreground h-8 text-sm"
+                      data-discover="true"
+                      data-sidebar="menu-button"
+                      data-size="default"
+                      data-slot="sidebar-menu-button"
+                      href="/openings"
+                    >
+                      Openings
+                    </a>
+                  </li>
+                  <li
+                    class="group/menu-item relative"
+                    data-sidebar="menu-item"
+                    data-slot="sidebar-menu-item"
+                  >
+                    <a
+                      class="peer/menu-button group/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-open:hover:bg-sidebar-accent data-open:hover:text-sidebar-accent-foreground data-active:bg-sidebar-accent data-active:font-medium data-active:text-sidebar-accent-foreground [&_svg]:size-4 [&_svg]:shrink-0 [&>span:last-child]:truncate hover:bg-sidebar-accent hover:text-sidebar-accent-foreground h-8 text-sm"
+                      data-discover="true"
+                      data-sidebar="menu-button"
+                      data-size="default"
+                      data-slot="sidebar-menu-button"
+                      href="/bookings"
+                    >
+                      Bookings
+                    </a>
+                  </li>
+                  <li
+                    class="group/menu-item relative"
+                    data-sidebar="menu-item"
+                    data-slot="sidebar-menu-item"
+                  >
+                    <a
+                      class="peer/menu-button group/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-open:hover:bg-sidebar-accent data-open:hover:text-sidebar-accent-foreground data-active:bg-sidebar-accent data-active:font-medium data-active:text-sidebar-accent-foreground [&_svg]:size-4 [&_svg]:shrink-0 [&>span:last-child]:truncate hover:bg-sidebar-accent hover:text-sidebar-accent-foreground h-8 text-sm"
+                      data-discover="true"
+                      data-sidebar="menu-button"
+                      data-size="default"
+                      data-slot="sidebar-menu-button"
+                      href="/refunds"
+                    >
+                      Refunds
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            </div>
           </div>
           <div
             class="flex flex-col gap-2 p-4 space-y-2"
@@ -356,6 +429,79 @@ exports[`AppSidebar > renders sidebar with single role 1`] = `
                       href="/api-keys"
                     >
                       API Keys
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <div
+              class="relative flex w-full min-w-0 flex-col p-2"
+              data-sidebar="group"
+              data-slot="sidebar-group"
+            >
+              <div
+                class="flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-medium text-sidebar-foreground/70 ring-sidebar-ring outline-hidden transition-[margin,opacity] duration-200 ease-linear group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0 focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0"
+                data-sidebar="group-label"
+                data-slot="sidebar-group-label"
+              >
+                Marketplace
+              </div>
+              <div
+                class="w-full text-sm"
+                data-sidebar="group-content"
+                data-slot="sidebar-group-content"
+              >
+                <ul
+                  class="flex w-full min-w-0 flex-col gap-0"
+                  data-sidebar="menu"
+                  data-slot="sidebar-menu"
+                >
+                  <li
+                    class="group/menu-item relative"
+                    data-sidebar="menu-item"
+                    data-slot="sidebar-menu-item"
+                  >
+                    <a
+                      class="peer/menu-button group/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-open:hover:bg-sidebar-accent data-open:hover:text-sidebar-accent-foreground data-active:bg-sidebar-accent data-active:font-medium data-active:text-sidebar-accent-foreground [&_svg]:size-4 [&_svg]:shrink-0 [&>span:last-child]:truncate hover:bg-sidebar-accent hover:text-sidebar-accent-foreground h-8 text-sm"
+                      data-discover="true"
+                      data-sidebar="menu-button"
+                      data-size="default"
+                      data-slot="sidebar-menu-button"
+                      href="/openings"
+                    >
+                      Openings
+                    </a>
+                  </li>
+                  <li
+                    class="group/menu-item relative"
+                    data-sidebar="menu-item"
+                    data-slot="sidebar-menu-item"
+                  >
+                    <a
+                      class="peer/menu-button group/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-open:hover:bg-sidebar-accent data-open:hover:text-sidebar-accent-foreground data-active:bg-sidebar-accent data-active:font-medium data-active:text-sidebar-accent-foreground [&_svg]:size-4 [&_svg]:shrink-0 [&>span:last-child]:truncate hover:bg-sidebar-accent hover:text-sidebar-accent-foreground h-8 text-sm"
+                      data-discover="true"
+                      data-sidebar="menu-button"
+                      data-size="default"
+                      data-slot="sidebar-menu-button"
+                      href="/bookings"
+                    >
+                      Bookings
+                    </a>
+                  </li>
+                  <li
+                    class="group/menu-item relative"
+                    data-sidebar="menu-item"
+                    data-slot="sidebar-menu-item"
+                  >
+                    <a
+                      class="peer/menu-button group/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-open:hover:bg-sidebar-accent data-open:hover:text-sidebar-accent-foreground data-active:bg-sidebar-accent data-active:font-medium data-active:text-sidebar-accent-foreground [&_svg]:size-4 [&_svg]:shrink-0 [&>span:last-child]:truncate hover:bg-sidebar-accent hover:text-sidebar-accent-foreground h-8 text-sm"
+                      data-discover="true"
+                      data-sidebar="menu-button"
+                      data-size="default"
+                      data-slot="sidebar-menu-button"
+                      href="/refunds"
+                    >
+                      Refunds
                     </a>
                   </li>
                 </ul>
@@ -557,6 +703,79 @@ exports[`AppSidebar > renders with active route highlighted 1`] = `
                       href="/api-keys"
                     >
                       API Keys
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <div
+              class="relative flex w-full min-w-0 flex-col p-2"
+              data-sidebar="group"
+              data-slot="sidebar-group"
+            >
+              <div
+                class="flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-medium text-sidebar-foreground/70 ring-sidebar-ring outline-hidden transition-[margin,opacity] duration-200 ease-linear group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0 focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0"
+                data-sidebar="group-label"
+                data-slot="sidebar-group-label"
+              >
+                Marketplace
+              </div>
+              <div
+                class="w-full text-sm"
+                data-sidebar="group-content"
+                data-slot="sidebar-group-content"
+              >
+                <ul
+                  class="flex w-full min-w-0 flex-col gap-0"
+                  data-sidebar="menu"
+                  data-slot="sidebar-menu"
+                >
+                  <li
+                    class="group/menu-item relative"
+                    data-sidebar="menu-item"
+                    data-slot="sidebar-menu-item"
+                  >
+                    <a
+                      class="peer/menu-button group/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-open:hover:bg-sidebar-accent data-open:hover:text-sidebar-accent-foreground data-active:bg-sidebar-accent data-active:font-medium data-active:text-sidebar-accent-foreground [&_svg]:size-4 [&_svg]:shrink-0 [&>span:last-child]:truncate hover:bg-sidebar-accent hover:text-sidebar-accent-foreground h-8 text-sm"
+                      data-discover="true"
+                      data-sidebar="menu-button"
+                      data-size="default"
+                      data-slot="sidebar-menu-button"
+                      href="/openings"
+                    >
+                      Openings
+                    </a>
+                  </li>
+                  <li
+                    class="group/menu-item relative"
+                    data-sidebar="menu-item"
+                    data-slot="sidebar-menu-item"
+                  >
+                    <a
+                      class="peer/menu-button group/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-open:hover:bg-sidebar-accent data-open:hover:text-sidebar-accent-foreground data-active:bg-sidebar-accent data-active:font-medium data-active:text-sidebar-accent-foreground [&_svg]:size-4 [&_svg]:shrink-0 [&>span:last-child]:truncate hover:bg-sidebar-accent hover:text-sidebar-accent-foreground h-8 text-sm"
+                      data-discover="true"
+                      data-sidebar="menu-button"
+                      data-size="default"
+                      data-slot="sidebar-menu-button"
+                      href="/bookings"
+                    >
+                      Bookings
+                    </a>
+                  </li>
+                  <li
+                    class="group/menu-item relative"
+                    data-sidebar="menu-item"
+                    data-slot="sidebar-menu-item"
+                  >
+                    <a
+                      class="peer/menu-button group/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-open:hover:bg-sidebar-accent data-open:hover:text-sidebar-accent-foreground data-active:bg-sidebar-accent data-active:font-medium data-active:text-sidebar-accent-foreground [&_svg]:size-4 [&_svg]:shrink-0 [&>span:last-child]:truncate hover:bg-sidebar-accent hover:text-sidebar-accent-foreground h-8 text-sm"
+                      data-discover="true"
+                      data-sidebar="menu-button"
+                      data-size="default"
+                      data-slot="sidebar-menu-button"
+                      href="/refunds"
+                    >
+                      Refunds
                     </a>
                   </li>
                 </ul>

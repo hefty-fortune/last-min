@@ -21,6 +21,11 @@ interface BookingRepository
     /** @return array<string, mixed> */
     public function markNoShow(string $bookingId, string $noShowActor, string $state): array;
 
+    /** @return array<string, mixed> */
+    public function markConfirmed(string $bookingId): array;
+
+    public function updateState(string $bookingId, string $state): void;
+
     /** @return list<array<string, mixed>> */
     public function listByClientProfileId(string $clientProfileId, ?string $state, int $limit): array;
 }

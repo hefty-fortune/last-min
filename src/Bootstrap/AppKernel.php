@@ -66,6 +66,7 @@ use App\Modules\Organizations\Infrastructure\Persistence\PdoOrganizationMemberRe
 use App\Modules\Payments\Api\PaymentController;
 use App\Modules\Payments\Application\Service\GetPaymentService;
 use App\Modules\Payments\Application\Service\InitiatePaymentService;
+use App\Modules\Payments\Application\Service\SettlePaymentOutcomeService;
 use App\Modules\Payments\Infrastructure\Persistence\PdoPaymentRepository;
 use App\Modules\Providers\Api\ProviderController;
 use App\Modules\Providers\Application\Service\CreateProviderService;
@@ -173,6 +174,7 @@ final class AppKernel
             new PaymentController(
                 new InitiatePaymentService(new PdoBookingRepository($pdo), new PdoPaymentRepository($pdo), new StubStripeGateway()),
                 new GetPaymentService(new PdoPaymentRepository($pdo), $providerRepository),
+                $settlement = new SettlePaymentOutcomeService($tx, new PdoPaymentRepository($pdo), new PdoBookingRepository($pdo), $openingRepository),
                 $idempotency
             ),
             new RefundController(
@@ -197,7 +199,7 @@ final class AppKernel
                 new ForceExpireOpeningService($tx, $openingRepository, $audit),
                 $idempotency
             ),
-            new StripeWebhookController(new StripeSignatureVerifier($stripeWebhookSecret), new PdoStripeWebhookEventRepository($pdo), new StripeWebhookDispatcher()),
+            new StripeWebhookController(new StripeSignatureVerifier($stripeWebhookSecret), new PdoStripeWebhookEventRepository($pdo), new StripeWebhookDispatcher($settlement)),
         );
 
         return $router;

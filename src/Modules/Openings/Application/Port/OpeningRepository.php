@@ -8,6 +8,9 @@ interface OpeningRepository
 {
     public function serviceOfferingBelongsToProvider(string $serviceOfferingId, string $providerId): bool;
 
+    /** @return array{amount_minor: int, currency: string}|null */
+    public function getServiceOfferingPrice(string $serviceOfferingId, string $providerId): ?array;
+
     public function createDraft(array $data): array;
 
     /** @return array<string, mixed>|null */

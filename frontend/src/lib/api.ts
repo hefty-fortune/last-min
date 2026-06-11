@@ -150,6 +150,109 @@ export const resetUserPassword = (id: string, password: string) =>
     body: JSON.stringify({ password }),
   });
 
+// ── Marketplace: Offerings ──
+
+const idempotent = () => ({ 'Idempotency-Key': crypto.randomUUID() });
+
+export const listOfferings = (providerId: string) =>
+  request<{ data: Offering[]; meta: Meta }>(`/providers/${providerId}/offerings`);
+
+export const createOffering = (providerId: string, body: CreateOfferingPayload) =>
+  request<{ data: Offering; meta: Meta }>(`/providers/${providerId}/offerings`, {
+    method: 'POST',
+    headers: idempotent(),
+    body: JSON.stringify(body),
+  });
+
+// ── Marketplace: Openings ──
+
+export const listOpenings = (providerId: string, status?: string) =>
+  request<{ data: Opening[]; meta: Meta }>(
+    `/providers/${providerId}/openings${status ? `?status=${status}` : ''}`,
+  );
+
+export const createOpening = (providerId: string, body: CreateOpeningPayload) =>
+  request<{ data: Opening; meta: Meta }>(`/providers/${providerId}/openings`, {
+    method: 'POST',
+    headers: idempotent(),
+    body: JSON.stringify(body),
+  });
+
+export const publishOpening = (providerId: string, openingId: string) =>
+  request<{ data: Opening; meta: Meta }>(`/providers/${providerId}/openings/${openingId}:publish`, {
+    method: 'POST',
+    headers: idempotent(),
+    body: JSON.stringify({}),
+  });
+
+export const cancelOpening = (providerId: string, openingId: string) =>
+  request<{ data: Opening; meta: Meta }>(`/providers/${providerId}/openings/${openingId}:cancel`, {
+    method: 'POST',
+    headers: idempotent(),
+    body: JSON.stringify({}),
+  });
+
+// ── Marketplace: Bookings ──
+
+export const listAdminBookings = (state?: string) =>
+  request<{ data: AdminBooking[]; meta: Meta }>(
+    `/admin/bookings${state ? `?state=${state}` : ''}`,
+  );
+
+export const createBooking = (openingId: string) =>
+  request<{ data: { booking_id: string; state: string }; meta: Meta }>('/bookings', {
+    method: 'POST',
+    headers: idempotent(),
+    body: JSON.stringify({ opening_id: openingId }),
+  });
+
+export const initiatePayment = (bookingId: string) =>
+  request<{ data: PaymentInitiated; meta: Meta }>(`/bookings/${bookingId}/payments/initiate`, {
+    method: 'POST',
+    headers: idempotent(),
+    body: JSON.stringify({ payment_method_type: 'card' }),
+  });
+
+export const simulatePaymentSucceed = (paymentId: string) =>
+  request<{ data: { payment_id: string; state: string }; meta: Meta }>(
+    `/payments/${paymentId}:simulate-succeed`,
+    { method: 'POST', body: JSON.stringify({}) },
+  );
+
+export const simulatePaymentFail = (paymentId: string, reason?: string) =>
+  request<{ data: { payment_id: string; state: string }; meta: Meta }>(
+    `/payments/${paymentId}:simulate-fail`,
+    { method: 'POST', body: JSON.stringify({ reason: reason ?? 'card_declined' }) },
+  );
+
+export const markProviderNoShow = (bookingId: string) =>
+  request<{ data: AdminBooking; meta: Meta }>(`/bookings/${bookingId}:mark-provider-no-show`, {
+    method: 'POST',
+    headers: idempotent(),
+    body: JSON.stringify({}),
+  });
+
+export const markClientNoShow = (bookingId: string) =>
+  request<{ data: AdminBooking; meta: Meta }>(`/bookings/${bookingId}:mark-client-no-show`, {
+    method: 'POST',
+    headers: idempotent(),
+    body: JSON.stringify({}),
+  });
+
+// ── Marketplace: Refunds ──
+
+export const listAdminRefunds = (state?: string) =>
+  request<{ data: Refund[]; meta: Meta }>(
+    `/admin/refunds${state ? `?state=${state}` : ''}`,
+  );
+
+export const approveRefund = (refundId: string, note?: string) =>
+  request<{ data: Refund; meta: Meta }>(`/refunds/${refundId}:approve`, {
+    method: 'POST',
+    headers: idempotent(),
+    body: JSON.stringify(note ? { note } : {}),
+  });
+
 // ── Types ──
 
 export type Meta = { request_id: string };
@@ -238,4 +341,70 @@ export type CreateUserPayload = {
   phone: string;
   roles: string[];
   provider_id: string;
+};
+
+export type Money = { currency: string; amount_minor: number };
+
+export type Offering = {
+  offering_id: string;
+  provider_id: string;
+  name: string;
+  description: string | null;
+  duration_minutes: number;
+  base_price: Money;
+  status: string;
+};
+
+export type CreateOfferingPayload = {
+  name: string;
+  description?: string;
+  duration_minutes: number;
+  base_price: Money;
+};
+
+export type Opening = {
+  opening_id: string;
+  provider_id: string;
+  service_offering_id: string;
+  starts_at: string;
+  ends_at: string;
+  status: string;
+  price_snapshot?: Money;
+};
+
+export type CreateOpeningPayload = {
+  service_offering_id: string;
+  starts_at: string;
+  ends_at: string;
+};
+
+export type AdminBooking = {
+  booking_id: string;
+  opening_id: string;
+  provider_id: string;
+  client_user_profile_id: string;
+  state: string;
+  amount: Money;
+  payment: { payment_id: string; state: string } | null;
+  no_show_actor: string | null;
+  created_at: string;
+};
+
+export type PaymentInitiated = {
+  payment_id: string;
+  state: string;
+  amount: Money;
+  stripe: { payment_intent_id: string; client_secret: string };
+};
+
+export type Refund = {
+  refund_id: string;
+  payment_id: string;
+  booking_id: string;
+  state: string;
+  reason: string;
+  amount: Money;
+  decided_by_actor_id: string | null;
+  decided_at: string | null;
+  created_at: string;
 };

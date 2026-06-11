@@ -27,13 +27,21 @@ final class CreateOpeningService
         if ($endsAt <= $startsAt) {
             throw new ApiException(422, new ApiError('VALIDATION_TIME_RANGE_INVALID', 'ends_at must be after starts_at.'));
         }
-        if (!$this->openings->serviceOfferingBelongsToProvider($request->serviceOfferingId, $request->providerId)) {
+        $offeringPrice = $this->openings->getServiceOfferingPrice($request->serviceOfferingId, $request->providerId);
+        if ($offeringPrice === null) {
             throw new ApiException(422, new ApiError('VALIDATION_SERVICE_OFFERING_NOT_FOUND', 'service_offering_id must belong to the selected provider.'));
         }
-        $priceAmount = (int) ($request->priceOverride['amount_minor'] ?? 0);
-        $priceCurrency = strtoupper(trim((string) ($request->priceOverride['currency'] ?? '')));
-        if ($priceAmount <= 0 || strlen($priceCurrency) !== 3) {
-            throw new ApiException(422, new ApiError('VALIDATION_PRICE_INVALID', 'price_override must contain a positive amount_minor and 3-letter currency.'));
+
+        if ($request->priceOverride === []) {
+            // No override: the opening snapshots the offering's base price.
+            $priceAmount = $offeringPrice['amount_minor'];
+            $priceCurrency = $offeringPrice['currency'];
+        } else {
+            $priceAmount = (int) ($request->priceOverride['amount_minor'] ?? 0);
+            $priceCurrency = strtoupper(trim((string) ($request->priceOverride['currency'] ?? '')));
+            if ($priceAmount <= 0 || strlen($priceCurrency) !== 3) {
+                throw new ApiException(422, new ApiError('VALIDATION_PRICE_INVALID', 'price_override must contain a positive amount_minor and 3-letter currency.'));
+            }
         }
 
         return $this->openings->createDraft([

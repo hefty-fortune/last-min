@@ -55,6 +55,27 @@ final class PdoPaymentRepository implements PaymentRepository
         $stmt->execute(['intent_id' => $intentId, 'updated' => (new \DateTimeImmutable())->format(DATE_ATOM), 'id' => $paymentId]);
     }
 
+    public function findByStripeIntentId(string $intentId): ?array
+    {
+        $stmt = $this->pdo->prepare('SELECT * FROM payments WHERE stripe_payment_intent_id = :intent_id LIMIT 1');
+        $stmt->execute(['intent_id' => $intentId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row === false ? null : $row;
+    }
+
+    public function markCaptured(string $paymentId): void
+    {
+        $now = (new \DateTimeImmutable())->format(DATE_ATOM);
+        $stmt = $this->pdo->prepare("UPDATE payments SET state = 'captured', captured_at = :captured_at, updated_at = :updated_at WHERE id = :id");
+        $stmt->execute(['id' => $paymentId, 'captured_at' => $now, 'updated_at' => $now]);
+    }
+
+    public function markFailed(string $paymentId, string $reason): void
+    {
+        $stmt = $this->pdo->prepare("UPDATE payments SET state = 'failed', failed_reason = :reason, updated_at = :updated_at WHERE id = :id");
+        $stmt->execute(['id' => $paymentId, 'reason' => $reason, 'updated_at' => (new \DateTimeImmutable())->format(DATE_ATOM)]);
+    }
+
     private static function uuid(): string
     {
         $data = random_bytes(16);
