@@ -76,6 +76,12 @@ final class PdoPaymentRepository implements PaymentRepository
         $stmt->execute(['id' => $paymentId, 'reason' => $reason, 'updated_at' => (new \DateTimeImmutable())->format(DATE_ATOM)]);
     }
 
+    public function markRefunded(string $paymentId): void
+    {
+        $stmt = $this->pdo->prepare("UPDATE payments SET state = 'refunded', updated_at = :updated_at WHERE id = :id");
+        $stmt->execute(['id' => $paymentId, 'updated_at' => (new \DateTimeImmutable())->format(DATE_ATOM)]);
+    }
+
     private static function uuid(): string
     {
         $data = random_bytes(16);

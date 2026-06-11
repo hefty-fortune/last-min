@@ -32,6 +32,7 @@ use App\Modules\AdminSetup\Infrastructure\Persistence\PdoOrganizationRepository;
 use App\Modules\AdminSetup\Infrastructure\Persistence\PdoUserRepository;
 use App\Modules\Booking\Api\BookingController;
 use App\Modules\Booking\Application\Service\CreateBookingService;
+use App\Modules\Booking\Application\Service\ExpireReservationsService;
 use App\Modules\Booking\Application\Service\GetBookingService;
 use App\Modules\Booking\Application\Service\ListMyBookingsService;
 use App\Modules\Booking\Application\Service\MarkNoShowService;
@@ -74,6 +75,7 @@ use App\Modules\Providers\Application\Service\UpdateProviderService;
 use App\Modules\Providers\Infrastructure\Persistence\PdoProviderRepository;
 use App\Modules\Refunds\Api\RefundController;
 use App\Modules\Refunds\Application\Service\ApproveRefundService;
+use App\Modules\Refunds\Application\Service\ExecuteRefundService;
 use App\Modules\Refunds\Application\Service\ListBookingRefundsService;
 use App\Modules\Refunds\Application\Service\RequestRefundService;
 use App\Modules\Refunds\Infrastructure\Persistence\PdoRefundRepository;
@@ -1077,6 +1079,108 @@ final class MilestoneOneTest extends TestCase
         $booking = $this->router->dispatch(new Request('GET', "/api/v1/bookings/$bookingId", $this->actorHeaders(['client']), []));
         self::assertSame('confirmed', $booking->body['data']['state']);
         self::assertSame('captured', $booking->body['data']['payment']['state']);
+    }
+
+    public function testExpiredReservationIsSweptAndOpeningReleased(): void
+    {
+        $headers = $this->actorHeaders(['client']);
+        $headers['Idempotency-Key'] = 'idem-expiry-1';
+        $created = $this->router->dispatch(new Request('POST', '/api/v1/bookings', $headers, ['opening_id' => 'opening-1']));
+        $bookingId = $created->body['data']['booking_id'];
+
+        $sweep = new ExpireReservationsService(
+            new PdoTransactionManager($this->pdo),
+            new PdoBookingRepository($this->pdo),
+            new PdoOpeningRepository($this->pdo),
+            new PdoAuditLogger($this->pdo),
+        );
+
+        // Not yet expired: sweep must leave it alone.
+        self::assertSame(['expired' => 0], $sweep->expireDue());
+
+        $past = (new \DateTimeImmutable('-1 minute'))->format(DATE_ATOM);
+        $this->pdo->exec("UPDATE bookings SET reservation_expires_at = '$past' WHERE id = '$bookingId'");
+
+        self::assertSame(['expired' => 1], $sweep->expireDue());
+
+        $booking = $this->pdo->query("SELECT state FROM bookings WHERE id = '$bookingId'")->fetchColumn();
+        self::assertSame('reservation_expired', $booking);
+        $opening = $this->pdo->query("SELECT status FROM openings WHERE id = 'opening-1'")->fetchColumn();
+        self::assertSame('published', $opening);
+
+        // The released slot is bookable again.
+        $rebookHeaders = $this->actorHeaders(['client']);
+        $rebookHeaders['Idempotency-Key'] = 'idem-expiry-2';
+        $rebooked = $this->router->dispatch(new Request('POST', '/api/v1/bookings', $rebookHeaders, ['opening_id' => 'opening-1']));
+        self::assertSame(201, $rebooked->statusCode);
+    }
+
+    public function testApprovedRefundIsExecutedAgainstGateway(): void
+    {
+        $bookingId = $this->seedConfirmedBooking('booking-exec-1');
+        $this->seedPaymentForBooking('payment-exec-1', $bookingId);
+
+        $noShowHeaders = $this->actorHeaders(['provider']);
+        $noShowHeaders['Idempotency-Key'] = 'idem-exec-noshow-1';
+        $this->router->dispatch(new Request('POST', "/api/v1/bookings/$bookingId:mark-provider-no-show", $noShowHeaders, []));
+
+        $refunds = $this->router->dispatch(new Request('GET', "/api/v1/bookings/$bookingId/refunds", $this->actorHeaders(['admin']), []));
+        $refundId = $refunds->body['data'][0]['refund_id'];
+
+        $approveHeaders = $this->actorHeaders(['admin']);
+        $approveHeaders['Idempotency-Key'] = 'idem-exec-approve-1';
+        $this->router->dispatch(new Request('POST', "/api/v1/refunds/$refundId:approve", $approveHeaders, []));
+
+        $execution = new ExecuteRefundService(
+            new PdoTransactionManager($this->pdo),
+            new PdoRefundRepository($this->pdo),
+            new PdoPaymentRepository($this->pdo),
+            new StubStripeGateway(),
+            new PdoAuditLogger($this->pdo),
+        );
+
+        self::assertSame(['succeeded' => 1, 'failed' => 0], $execution->executePending());
+
+        $refund = $this->pdo->query("SELECT state, stripe_refund_id FROM refunds WHERE id = '$refundId'")->fetch(\PDO::FETCH_ASSOC);
+        self::assertSame('succeeded', $refund['state']);
+        self::assertStringStartsWith('re_', (string) $refund['stripe_refund_id']);
+
+        $payment = $this->pdo->query("SELECT state FROM payments WHERE id = 'payment-exec-1'")->fetchColumn();
+        self::assertSame('refunded', $payment);
+
+        // Re-running the sweep is a no-op (no pending refunds left).
+        self::assertSame(['succeeded' => 0, 'failed' => 0], $execution->executePending());
+    }
+
+    public function testRefundExecutionFailsWhenPaymentHasNoIntent(): void
+    {
+        $bookingId = $this->seedConfirmedBooking('booking-exec-2');
+        $this->seedPaymentForBooking('payment-exec-2', $bookingId);
+        $this->pdo->exec("UPDATE payments SET stripe_payment_intent_id = NULL WHERE id = 'payment-exec-2'");
+
+        $noShowHeaders = $this->actorHeaders(['provider']);
+        $noShowHeaders['Idempotency-Key'] = 'idem-exec-noshow-2';
+        $this->router->dispatch(new Request('POST', "/api/v1/bookings/$bookingId:mark-provider-no-show", $noShowHeaders, []));
+
+        $refunds = $this->router->dispatch(new Request('GET', "/api/v1/bookings/$bookingId/refunds", $this->actorHeaders(['admin']), []));
+        $refundId = $refunds->body['data'][0]['refund_id'];
+        $approveHeaders = $this->actorHeaders(['admin']);
+        $approveHeaders['Idempotency-Key'] = 'idem-exec-approve-2';
+        $this->router->dispatch(new Request('POST', "/api/v1/refunds/$refundId:approve", $approveHeaders, []));
+
+        $execution = new ExecuteRefundService(
+            new PdoTransactionManager($this->pdo),
+            new PdoRefundRepository($this->pdo),
+            new PdoPaymentRepository($this->pdo),
+            new StubStripeGateway(),
+            new PdoAuditLogger($this->pdo),
+        );
+
+        self::assertSame(['succeeded' => 0, 'failed' => 1], $execution->executePending());
+
+        $refund = $this->pdo->query("SELECT state, failure_reason FROM refunds WHERE id = '$refundId'")->fetch(\PDO::FETCH_ASSOC);
+        self::assertSame('failed', $refund['state']);
+        self::assertStringContainsString('payment intent', (string) $refund['failure_reason']);
     }
 
     public function testClientCanListOwnBookings(): void

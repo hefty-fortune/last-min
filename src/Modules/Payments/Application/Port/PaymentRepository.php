@@ -21,4 +21,6 @@ interface PaymentRepository
     public function markCaptured(string $paymentId): void;
 
     public function markFailed(string $paymentId, string $reason): void;
+
+    public function markRefunded(string $paymentId): void;
 }

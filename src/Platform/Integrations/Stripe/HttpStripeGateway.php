@@ -38,6 +38,20 @@ final class HttpStripeGateway implements StripeGateway
         ];
     }
 
+    public function createRefund(string $refundId, string $paymentIntentId, int $amountMinor): array
+    {
+        $response = $this->post('/refunds', [
+            'payment_intent' => $paymentIntentId,
+            'amount' => $amountMinor,
+            'metadata[refund_id]' => $refundId,
+        ], idempotencyKey: 'refund-create-' . $refundId);
+
+        return [
+            'refund_id' => (string) $response['id'],
+            'status' => (string) $response['status'],
+        ];
+    }
+
     /** @param array<string, string|int> $payload
      *  @return array<string, mixed>
      */

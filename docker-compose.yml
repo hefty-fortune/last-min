@@ -26,6 +26,32 @@ services:
         condition: service_healthy
     command: sh -c "php bin/migrate.php && php -S 0.0.0.0:8080 -t public public/router.php"
 
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    working_dir: /app
+    env_file:
+      - .env
+    environment:
+      DB_DRIVER: ${DB_DRIVER:-pgsql}
+      DB_HOST: ${DB_HOST:-postgres}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-lastmin}
+      DB_USER: ${DB_USER:-lastmin}
+      DB_PASSWORD: ${DB_PASSWORD:-lastmin}
+      DB_DSN: ${DB_DSN:-}
+      STRIPE_MODE: ${STRIPE_MODE:-simulation}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+    volumes:
+      - ./:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    command: sh -c "while true; do php bin/run-worker.php; sleep 30; done"
+
   frontend:
     build:
       context: ./frontend

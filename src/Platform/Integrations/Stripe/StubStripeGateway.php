@@ -14,4 +14,12 @@ final class StubStripeGateway implements StripeGateway
             'status' => 'requires_action',
         ];
     }
+
+    public function createRefund(string $refundId, string $paymentIntentId, int $amountMinor): array
+    {
+        return [
+            'refund_id' => 're_' . substr(str_replace('-', '', $refundId), 0, 24),
+            'status' => 'succeeded',
+        ];
+    }
 }

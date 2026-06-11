@@ -136,6 +136,16 @@ final class PdoBookingRepository implements BookingRepository
         return array_map(fn (array $row): array => $this->mapBooking($row), $rows);
     }
 
+    public function listExpiredReservedIds(string $nowIso, int $limit): array
+    {
+        $stmt = $this->pdo->prepare("SELECT id FROM bookings WHERE state = 'reserved' AND reservation_expires_at IS NOT NULL AND reservation_expires_at <= :now ORDER BY reservation_expires_at ASC LIMIT :limit");
+        $stmt->bindValue(':now', $nowIso);
+        $stmt->bindValue(':limit', max(1, min($limit, 500)), PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+    }
+
     /** @param array<string, mixed> $row
      *  @return array<string, mixed>
      */

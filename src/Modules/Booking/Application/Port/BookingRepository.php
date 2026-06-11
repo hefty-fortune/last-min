@@ -28,4 +28,7 @@ interface BookingRepository
 
     /** @return list<array<string, mixed>> */
     public function listByClientProfileId(string $clientProfileId, ?string $state, int $limit): array;
+
+    /** @return list<string> */
+    public function listExpiredReservedIds(string $nowIso, int $limit): array;
 }

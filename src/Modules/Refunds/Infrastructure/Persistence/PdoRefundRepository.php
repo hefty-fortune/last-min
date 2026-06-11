@@ -94,6 +94,45 @@ final class PdoRefundRepository implements RefundRepository
         return $updated;
     }
 
+    public function listPendingIds(int $limit): array
+    {
+        $stmt = $this->pdo->prepare("SELECT id FROM refunds WHERE state = 'pending' ORDER BY created_at ASC LIMIT :limit");
+        $stmt->bindValue(':limit', max(1, min($limit, 100)), PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+    }
+
+    public function markSucceeded(string $refundId, string $stripeRefundId): array
+    {
+        $stmt = $this->pdo->prepare("UPDATE refunds SET state = 'succeeded', stripe_refund_id = :stripe_refund_id, updated_at = :updated_at WHERE id = :id");
+        $stmt->execute([
+            'id' => $refundId,
+            'stripe_refund_id' => $stripeRefundId,
+            'updated_at' => (new \DateTimeImmutable())->format(DATE_ATOM),
+        ]);
+
+        $updated = $this->findById($refundId);
+        assert($updated !== null);
+
+        return $updated;
+    }
+
+    public function markFailed(string $refundId, string $reason): array
+    {
+        $stmt = $this->pdo->prepare("UPDATE refunds SET state = 'failed', failure_reason = :reason, updated_at = :updated_at WHERE id = :id");
+        $stmt->execute([
+            'id' => $refundId,
+            'reason' => $reason,
+            'updated_at' => (new \DateTimeImmutable())->format(DATE_ATOM),
+        ]);
+
+        $updated = $this->findById($refundId);
+        assert($updated !== null);
+
+        return $updated;
+    }
+
     /** @param array<string, mixed> $row
      *  @return array<string, mixed>
      */
@@ -109,6 +148,7 @@ final class PdoRefundRepository implements RefundRepository
             'stripe_refund_id' => $row['stripe_refund_id'],
             'decided_by_actor_id' => $row['decided_by_actor_id'],
             'decision_note' => $row['decision_note'],
+            'failure_reason' => $row['failure_reason'] ?? null,
             'decided_at' => $row['decided_at'],
             'created_at' => $row['created_at'],
             'updated_at' => $row['updated_at'],
