@@ -181,3 +181,7 @@ The architecture must allow advanced dispute workflows.
 The architecture must support expansion to new verticals and cities.
 
 State machine and payment model must be designed with these extensions in mind.
+
+### Related detailed specs
+
+- [No-show detection & slot release](no-show-detection-and-release.md) — the core mechanism by which last-minute openings are generated (confirmation loop, reconfirm-or-release, collision handling, GDPR posture, Phase-1 wedge). Not yet reflected in the MVP scope above.
